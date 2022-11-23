@@ -4,7 +4,6 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - cudatoolkit=11.6
   - pip
   - pip:
-      - -r requirements_gpu.txt
+      - -r requirements_cpu.txt

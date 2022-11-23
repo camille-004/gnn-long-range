@@ -17,5 +17,5 @@ torch-scatter==2.0.9
 torch-sparse==0.6.15
 torch-spline-conv==1.2.1
 tqdm==4.64.1
-typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1665144421445/work
+typing_extensions
 urllib3==1.26.12
