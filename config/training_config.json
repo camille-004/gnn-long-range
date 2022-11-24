@@ -1,0 +1,4 @@
+{
+  "max_epochs": 200,
+  "early_stopping": 10
+}

@@ -1,0 +1,8 @@
+{
+  "gcn": {
+    "hidden_dim": 64,
+    "lr": 0.01,
+    "dropout": 0.8,
+    "weight_decay": 5e-4
+  }
+}

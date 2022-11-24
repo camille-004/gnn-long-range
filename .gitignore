@@ -130,3 +130,10 @@ dmypy.json
 
 # .idea folder
 /.idea
+
+# Data directory
+/data
+
+# Wandb
+/src/wandb/*
+/wandb/*
