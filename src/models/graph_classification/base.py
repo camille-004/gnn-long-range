@@ -30,6 +30,8 @@ class BaseGraphClassifier(pl.LightningModule):
         self.lr = 0.01
         self.weight_decay = 5e-4
 
+        print("\n=====\nMODEL\n=====\n")
+
     @property
     def model_name(self) -> str:
         """

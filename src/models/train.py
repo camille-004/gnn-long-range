@@ -23,8 +23,8 @@ from src.models.node_classification.gcn import NodeLevelGCN
 from src.models.node_classification.gin import NodeLevelGIN
 from src.utils import load_config
 
-data_config = load_config("data_config.json")
-training_config = load_config("training_config.json")
+data_config = load_config("data_config.yaml")
+training_config = load_config("training_config.yaml")
 
 
 def get_model(
@@ -151,8 +151,11 @@ def train_module(
     """
     _num_features = _data_module.num_features
     _num_classes = _data_module.num_classes
+    print("==================\nDATASET STATISTICS\n==================\n")
     print(f"Number of features: {_num_features}")
-    print(f"Number of classes: {_num_classes}")
+    print(f"Number of classes: {_num_classes}\n")
+
+    print("========\nTRAINING\n========\n")
 
     project_name = f"{_data_module.dataset_name}_{_model.model_name}"
     wandb_logger = WandbLogger(project=project_name, log_model="all")
@@ -192,5 +195,5 @@ def train_module(
 
 if __name__ == "__main__":
     wandb.login()
-    data, model = prepare_training("node", "gat", 2, "cora", num_heads=1)
+    data, model = prepare_training("graph", "gat", 2, "IMDB-BINARY")
     print(train_module(data, model))

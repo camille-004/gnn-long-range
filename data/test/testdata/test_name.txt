@@ -1,0 +1,3 @@
+As the datasets are downloaded within the data module I defined, the test target will simply be two names of example datasets.
+IMDB-BINARY
+cora

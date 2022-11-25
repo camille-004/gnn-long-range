@@ -7,7 +7,7 @@ from src.utils import load_config
 
 from .base import BaseGraphClassifier
 
-config = load_config("model_config.json")
+config = load_config("model_config.yaml")
 gat_config = config["gat_params"]["graph"]
 
 

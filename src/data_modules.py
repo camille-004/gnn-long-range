@@ -7,7 +7,7 @@ from torch_geometric.loader import DataLoader
 
 from src.utils import load_config
 
-config = load_config("data_config.json")
+config = load_config("data_config.yaml")
 DATA_DIR = config["data_dir"]
 
 graph_data_config = config["graph"]

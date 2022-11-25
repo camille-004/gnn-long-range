@@ -7,7 +7,7 @@ from src.utils import load_config
 
 from .base import BaseNodeClassifier
 
-config = load_config("model_config.json")
+config = load_config("model_config.yaml")
 gin_config = config["gin_params"]
 
 

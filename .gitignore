@@ -132,11 +132,13 @@ dmypy.json
 /.idea
 
 # Wandb, data
-**/ENZYMES/
-**/IMDB-BINARY/
+**/wandb*/
+
+**/ENZYMES*/
+**/IMDB-BINARY*/
 **/PROTEINS*/
-**/wandb/
 **/cora*/
 **/imdb*/
 **/enzyme*/
 **/IMDB*/
+**/pubmed*/

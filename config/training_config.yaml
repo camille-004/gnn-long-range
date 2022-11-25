@@ -1,0 +1,3 @@
+early_stopping_patience_default: 5
+early_stopping_min_delta_default: 0.001
+max_epochs_default: 2500

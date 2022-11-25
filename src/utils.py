@@ -1,6 +1,7 @@
-import json
 from pathlib import Path
 from typing import Any, Dict
+
+import yaml
 
 CONFIG_DIR = Path(Path(__file__).parent.parent, "config")
 
@@ -20,6 +21,6 @@ def load_config(config_name: str) -> Dict[str, Any]:
     config_path = Path(CONFIG_DIR, config_name)
 
     with open(config_path) as f:
-        config = json.load(f)
+        config = yaml.safe_load(f)
 
     return config
