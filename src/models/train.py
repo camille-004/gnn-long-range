@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Type, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -27,11 +27,51 @@ data_config = load_config("data_config.json")
 training_config = load_config("training_config.json")
 
 
+def get_model(
+    task: str, model_name: str
+) -> Type[Union[BaseGraphClassifier, BaseNodeClassifier]]:
+    """
+
+    Parameters
+    ----------
+    task : str
+        Either "node" or "graph" for node or graph classification,
+        respectively.
+    model_name : str
+        Name of model to train.
+
+    Returns
+    -------
+    Union[BaseGraphClassifier, BaseNodeClassifier]
+        Class of the model to train.
+    """
+    model_map = {
+        "graph": {
+            "gat": GraphLevelGAT,
+            "gcn": GraphLevelGCN,
+            "gin": GraphLevelGIN,
+            "gin_cat": GraphLevelGINWithCat,
+        },
+        "node": {
+            "gat": NodeLevelGAT,
+            "gcn": NodeLevelGCN,
+            "gin": NodeLevelGIN,
+        },
+    }
+
+    if task == "graph":
+        assert model_name in model_map["graph"].keys()
+    else:
+        assert model_name in model_map["node"].keys()
+
+    return model_map[task][model_name]
+
+
 def prepare_training(
     task: str,
+    _model: str,
     n_hidden: int,
     dataset_name: str = data_config["node"]["node_data_name_default"],
-    _model: str = "gcn",
     **kwargs,
 ) -> Tuple[
     Union[GraphDataModule, NodeDataModule],
@@ -62,65 +102,17 @@ def prepare_training(
 
     if task == "graph":
         _data_module = GraphDataModule(dataset_name=dataset_name)
-        if _model == "gat":
-            return _data_module, GraphLevelGAT(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        elif _model == "gcn":
-            return _data_module, GraphLevelGCN(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        elif _model == "gin":
-            return _data_module, GraphLevelGIN(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        elif _model == "gin_cat":
-            return _data_module, GraphLevelGINWithCat(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        else:
-            raise ValueError(
-                "Unknown or unsupported model type for graph classification."
-            )
     else:
         _data_module = NodeDataModule(dataset_name=dataset_name)
-        if _model == "gat":
-            return _data_module, NodeLevelGAT(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        elif _model == "gcn":
-            return _data_module, NodeLevelGCN(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        elif _model == "gin":
-            return _data_module, NodeLevelGIN(
-                n_hidden,
-                num_features=_data_module.num_features,
-                num_classes=_data_module.num_classes,
-                **kwargs,
-            )
-        else:
-            raise ValueError(
-                "Unknown or unsupported model type for node classification."
-            )
+
+    model_type = get_model(task, _model)
+    model_instance = model_type(
+        n_hidden=n_hidden,
+        num_featurews=_data_module.num_features,
+        num_classes=_data_module.num_classes,
+        **kwargs,
+    )
+    return _data_module, model_instance
 
 
 def train_module(
@@ -200,6 +192,5 @@ def train_module(
 
 if __name__ == "__main__":
     wandb.login()
-    data, model = prepare_training("graph", 2, "PROTEINS", "gat")
-
+    data, model = prepare_training("node", "gat", 2, "cora", num_heads=1)
     print(train_module(data, model))
