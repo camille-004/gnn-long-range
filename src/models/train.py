@@ -29,9 +29,10 @@ training_config = load_config("training_config.json")
 
 def prepare_training(
     task: str,
-    num_layers: int,
+    n_hidden: int,
     dataset_name: str = data_config["node"]["node_data_name_default"],
     _model: str = "gcn",
+    **kwargs,
 ) -> Tuple[
     Union[GraphDataModule, NodeDataModule],
     Union[BaseGraphClassifier, BaseNodeClassifier],
@@ -43,7 +44,7 @@ def prepare_training(
     task : str
         Either "node" or "graph" for node or graph classification,
         respectively.
-    num_layers : int
+    n_hidden : int
         Number of hidden layers in the neural network.
     dataset_name : str
         Name of dataset name in DataModule.
@@ -63,52 +64,63 @@ def prepare_training(
         _data_module = GraphDataModule(dataset_name=dataset_name)
         if _model == "gat":
             return _data_module, GraphLevelGAT(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         elif _model == "gcn":
             return _data_module, GraphLevelGCN(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         elif _model == "gin":
             return _data_module, GraphLevelGIN(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         elif _model == "gin_cat":
             return _data_module, GraphLevelGINWithCat(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         else:
-            raise ValueError("Unknown model type for graph classification.")
+            raise ValueError(
+                "Unknown or unsupported model type for graph classification."
+            )
     else:
         _data_module = NodeDataModule(dataset_name=dataset_name)
         if _model == "gat":
             return _data_module, NodeLevelGAT(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         elif _model == "gcn":
             return _data_module, NodeLevelGCN(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         elif _model == "gin":
             return _data_module, NodeLevelGIN(
-                num_layers,
+                n_hidden,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
+                **kwargs,
             )
         else:
-            raise ValueError("Unknown model type for node classification.")
+            raise ValueError(
+                "Unknown or unsupported model type for node classification."
+            )
 
 
 def train_module(
@@ -188,11 +200,6 @@ def train_module(
 
 if __name__ == "__main__":
     wandb.login()
-    data, model = prepare_training("graph", 10, "PROTEINS", "gat")
+    data, model = prepare_training("graph", 2, "PROTEINS", "gat")
 
-    print(
-        train_module(
-            data,
-            model,
-        )
-    )
+    print(train_module(data, model))

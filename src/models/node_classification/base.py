@@ -2,6 +2,7 @@ from typing import Any, Callable, Tuple
 
 import pytorch_lightning as pl
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.data import Data
@@ -10,9 +11,14 @@ from torch_geometric.data import Data
 class BaseNodeClassifier(pl.LightningModule):
     """Base node classifier."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, n_hidden: int, activation: nn.Module, **kwargs) -> None:
         super().__init__()
         pl.utilities.seed.seed_everything(1)
+
+        assert n_hidden >= 0, "Number of hidden layers must be non-negative."
+        self.n_hidden = n_hidden
+        self.activation = activation
+
         self._model_name = "base_node_clf"
 
         self.num_features: int = 0

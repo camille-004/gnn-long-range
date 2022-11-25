@@ -1,22 +1,23 @@
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import ELU, Dropout, Linear
-from torch_geometric.nn import GATv2Conv, Sequential, global_mean_pool
+from torch_geometric.nn import GATConv, Sequential, global_mean_pool
 
 from ...utils import load_config
 from .base import BaseGraphClassifier
 
 config = load_config("model_config.json")
-gat_config = config["gat_params"]
+gat_config = config["gat_params"]["graph"]
 
 
 class GraphLevelGAT(BaseGraphClassifier):
     """PyTorch Lightning module of GAT for graph classification."""
 
-    def __init__(self, num_layers, **kwargs) -> None:
-        super().__init__(num_layers)
-        self._model_name = "node_GAT"
-
-        print(self.num_layers)
+    def __init__(
+        self, n_hidden: int, activation: nn.Module = ELU(), **kwargs
+    ) -> None:
+        super().__init__(n_hidden, activation)
+        self._model_name = "graph_GAT"
 
         self.num_features: int = (
             kwargs["num_features"]
@@ -52,12 +53,52 @@ class GraphLevelGAT(BaseGraphClassifier):
             else gat_config["weight_decay"]
         )
 
+        hidden = []
+
+        for i in range(1, self.n_hidden + 1):
+            hidden.append((Dropout(p=self.dropout), f"x{i}a -> x{i}d"))
+            if i == self.n_hidden and self.num_heads > 1:
+                hidden.append(
+                    (
+                        GATConv(
+                            self.hidden_channels * self.num_heads,
+                            self.hidden_channels,
+                            concat=False,
+                            dropout=self.dropout,
+                        ),
+                        f"x{i}d, edge_index -> x{i + 1}",
+                    )
+                )
+            else:
+                hidden.append(
+                    (
+                        GATConv(
+                            self.hidden_channels * self.num_heads,
+                            self.hidden_channels * self.num_heads,
+                            concat=False,
+                            heads=self.num_heads,
+                            dropout=self.dropout,
+                        ),
+                        f"x{i}d, edge_index -> x{i + 1}",
+                    )
+                )
+                hidden.append((self.activation, f"x{i + 1} -> x{i + 1}a"))
+
+        if self.num_heads == 1:
+            global_mean_pool_args = (
+                f"x{n_hidden + 1}a, batch_index -> x{n_hidden + 2}"
+            )
+        else:
+            global_mean_pool_args = (
+                f"x{n_hidden + 1}, batch_index -> x{n_hidden + 2}"
+            )
+
         self.model = Sequential(
             "x, edge_index, batch_index",
             [
                 (Dropout(p=self.dropout), "x -> xd"),
                 (
-                    GATv2Conv(
+                    GATConv(
                         self.num_features,
                         self.hidden_channels,
                         heads=self.num_heads,
@@ -65,23 +106,16 @@ class GraphLevelGAT(BaseGraphClassifier):
                     ),
                     "xd, edge_index -> x1",
                 ),
-                (ELU(), "x1 -> x1a"),
-                (Dropout(p=self.dropout), "x1a -> x1d"),
+                (self.activation, "x1 -> x1a"),
+                *hidden,
+                (global_mean_pool, global_mean_pool_args),
                 (
-                    GATv2Conv(
-                        self.hidden_channels * self.num_heads,
-                        self.hidden_channels,
-                        heads=1,
-                        concat=False,
-                        dropout=self.dropout,
-                    ),
-                    "x1d, edge_index -> x2",
+                    Dropout(p=self.dropout),
+                    f"x{n_hidden + 2} -> x{n_hidden + 2}d",
                 ),
-                (global_mean_pool, "x2, batch_index -> x3"),
-                (Dropout(p=0.5), "x3 -> x3d"),
                 (
                     Linear(self.hidden_channels, self.num_classes),
-                    "x3d -> x_out",
+                    f"x{n_hidden + 2}d -> x_out",
                 ),
             ],
         )

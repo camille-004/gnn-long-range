@@ -3,12 +3,22 @@
     "num_classes_default": 2,
     "hidden_channels_default": 16,
     "gat_params": {
-        "dropout": 0.6,
-        "alpha": 0.2,
-        "num_heads": 8,
-        "concat": true,
-        "lr": 0.005,
-        "weight_decay": 5e-4
+        "graph": {
+            "dropout": 0.6,
+            "alpha": 0.2,
+            "num_heads": 1,
+            "concat": true,
+            "lr": 0.005,
+            "weight_decay": 5e-4
+        },
+        "node": {
+            "dropout": 0.6,
+            "alpha": 0.2,
+            "num_heads": 1,
+            "concat": true,
+            "lr": 0.005,
+            "weight_decay": 5e-4
+        }
     },
     "gin_params": {
         "dropout": 0.5,

@@ -1,19 +1,22 @@
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import ELU, Dropout, LogSoftmax
-from torch_geometric.nn import GATv2Conv, Sequential
+from torch_geometric.nn import GATConv, Sequential
 
 from ...utils import load_config
 from .base import BaseNodeClassifier
 
 config = load_config("model_config.json")
-gat_config = config["gat_params"]
+gat_config = config["gat_params"]["node"]
 
 
 class NodeLevelGAT(BaseNodeClassifier):
     """PyTorch Lightning module of GAT for node classification."""
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__()
+    def __init__(
+        self, n_hidden: int, activation: nn.Module = ELU(), **kwargs
+    ) -> None:
+        super().__init__(n_hidden, activation)
         self._model_name = "node_GAT"
 
         self.num_features: int = (
@@ -50,29 +53,54 @@ class NodeLevelGAT(BaseNodeClassifier):
             else gat_config["weight_decay"]
         )
 
+        hidden = []
+
+        for i in range(1, self.n_hidden + 1):
+            hidden.append((Dropout(p=self.dropout), f"x{i}a -> x{i}d"))
+            hidden.append(
+                (
+                    GATConv(
+                        self.hidden_channels * self.num_heads,
+                        self.hidden_channels * self.num_heads,
+                        heads=self.num_heads,
+                        concat=False,
+                        dropout=self.dropout,
+                    ),
+                    f"x{i}d, edge_index -> x{i + 1}",
+                )
+            )
+            hidden.append((self.activation, f"x{i + 1} -> x{i + 1}a"))
+
         self.model = Sequential(
             "x, edge_index",
             [
                 (Dropout(p=self.dropout), "x -> xd"),
                 (
-                    GATv2Conv(
+                    GATConv(
                         self.num_features,
                         self.hidden_channels,
                         heads=self.num_heads,
+                        dropout=self.dropout,
                     ),
                     "xd, edge_index -> x1",
                 ),
-                (ELU(), "x1 -> x1a"),
-                (Dropout(p=self.dropout), "x1a -> x1d"),
+                (self.activation, "x1 -> x1a"),
+                *hidden,
                 (
-                    GATv2Conv(
+                    GATConv(
                         self.hidden_channels * self.num_heads,
                         self.num_classes,
-                        heads=1,
+                        concat=False,
+                        dropout=self.dropout,
                     ),
-                    "x1d, edge_index -> x2",
+                    f"x{n_hidden + 1}a, edge_index -> x{n_hidden + 2}",
                 ),
-                (LogSoftmax(), "x2 -> x_out"),
+                (self.activation, f"x{n_hidden + 2} -> x{n_hidden + 2}a"),
+                (
+                    Dropout(p=self.dropout),
+                    f"x{n_hidden + 2}a -> x{n_hidden + 2}d",
+                ),
+                (LogSoftmax(), f"x{n_hidden + 2}d -> x_out"),
             ],
         )
 
