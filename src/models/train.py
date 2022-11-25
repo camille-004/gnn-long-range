@@ -5,7 +5,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
-from src.data.data_modules import GraphDataModule, NodeDataModule
+from src.data_modules import GraphDataModule, NodeDataModule
 from src.models.graph_classification.base import BaseGraphClassifier
 from src.models.graph_classification.gat import GraphLevelGAT
 from src.models.graph_classification.gcn import GraphLevelGCN
@@ -108,7 +108,7 @@ def prepare_training(
     model_type = get_model(task, _model)
     model_instance = model_type(
         n_hidden=n_hidden,
-        num_featurews=_data_module.num_features,
+        num_features=_data_module.num_features,
         num_classes=_data_module.num_classes,
         **kwargs,
     )

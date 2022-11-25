@@ -3,7 +3,8 @@ import torch.nn.functional as F
 from torch.nn import BatchNorm1d, Dropout, Linear, LogSoftmax, ReLU
 from torch_geometric.nn import GINConv, Sequential
 
-from ...utils import load_config
+from src.utils import load_config
+
 from .base import BaseNodeClassifier
 
 config = load_config("model_config.json")

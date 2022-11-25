@@ -13,7 +13,8 @@ from torch_geometric.nn import (  # noqa
 
 # isort: on
 
-from ...utils import load_config
+from src.utils import load_config
+
 from .base import BaseGraphClassifier
 
 config = load_config("model_config.json")

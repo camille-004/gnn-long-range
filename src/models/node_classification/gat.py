@@ -3,7 +3,8 @@ import torch.nn.functional as F
 from torch.nn import ELU, Dropout, LogSoftmax
 from torch_geometric.nn import GATConv, Sequential
 
-from ...utils import load_config
+from src.utils import load_config
+
 from .base import BaseNodeClassifier
 
 config = load_config("model_config.json")
@@ -103,5 +104,7 @@ class NodeLevelGAT(BaseNodeClassifier):
                 (LogSoftmax(), f"x{n_hidden + 2}d -> x_out"),
             ],
         )
+
+        print(self.model)
 
         self.loss_fn = F.nll_loss

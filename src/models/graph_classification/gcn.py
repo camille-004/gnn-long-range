@@ -2,7 +2,8 @@ import torch.nn.functional as F
 from torch.nn import Dropout, Linear, ReLU
 from torch_geometric.nn import GCNConv, Sequential, global_mean_pool
 
-from ...utils import load_config
+from src.utils import load_config
+
 from .base import BaseGraphClassifier
 
 config = load_config("model_config.json")

@@ -131,24 +131,12 @@ dmypy.json
 # .idea folder
 /.idea
 
-# Data directory
-/data
-
 # Wandb, data
-/ENZYMES/
-/IMDB-BINARY/
-/wandb/
-/cora*/
-/imdb*/
-/enzyme*/
-/IMDB*/
-/ENZYMES*/
-/notebooks/wandb/
-/PROTEINS*/
-/src/wandb/*
-/src/models/wandb/*
-/data/*
-/src/models/PROTEINS*/
-/src/models/ENZYMES*/
-/src/models/cora*/
-/src/models/imdb*/
+**/ENZYMES/
+**/IMDB-BINARY/
+**/PROTEINS*/
+**/wandb/
+**/cora*/
+**/imdb*/
+**/enzyme*/
+**/IMDB*/
