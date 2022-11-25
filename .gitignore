@@ -148,3 +148,7 @@ dmypy.json
 /src/wandb/*
 /src/models/wandb/*
 /data/*
+/src/models/PROTEINS*/
+/src/models/ENZYMES*/
+/src/models/cora*/
+/src/models/imdb*/

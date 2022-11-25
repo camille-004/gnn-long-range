@@ -29,6 +29,7 @@ training_config = load_config("training_config.json")
 
 def prepare_training(
     task: str,
+    num_layers: int,
     dataset_name: str = data_config["node"]["node_data_name_default"],
     _model: str = "gcn",
 ) -> Tuple[
@@ -42,6 +43,8 @@ def prepare_training(
     task : str
         Either "node" or "graph" for node or graph classification,
         respectively.
+    num_layers : int
+        Number of hidden layers in the neural network.
     dataset_name : str
         Name of dataset name in DataModule.
     _model : str
@@ -60,21 +63,25 @@ def prepare_training(
         _data_module = GraphDataModule(dataset_name=dataset_name)
         if _model == "gat":
             return _data_module, GraphLevelGAT(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
         elif _model == "gcn":
             return _data_module, GraphLevelGCN(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
         elif _model == "gin":
             return _data_module, GraphLevelGIN(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
         elif _model == "gin_cat":
             return _data_module, GraphLevelGINWithCat(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
@@ -84,16 +91,19 @@ def prepare_training(
         _data_module = NodeDataModule(dataset_name=dataset_name)
         if _model == "gat":
             return _data_module, NodeLevelGAT(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
         elif _model == "gcn":
             return _data_module, NodeLevelGCN(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
         elif _model == "gin":
             return _data_module, NodeLevelGIN(
+                num_layers,
                 num_features=_data_module.num_features,
                 num_classes=_data_module.num_classes,
             )
@@ -178,7 +188,7 @@ def train_module(
 
 if __name__ == "__main__":
     wandb.login()
-    data, model = prepare_training("graph", "PROTEINS", "gin")
+    data, model = prepare_training("graph", 10, "PROTEINS", "gat")
 
     print(
         train_module(

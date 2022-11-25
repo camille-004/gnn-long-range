@@ -184,11 +184,16 @@ class GraphDataModule(pl.LightningDataModule):
         -------
         None
         """
-        dataset = TUDataset(
-            root=self.root,
-            name=self.dataset_name,
-            transform=T.Compose(self.transform),
-        )
+        if self.dataset_name in ["IMDB-BINARY", "PROTEINS"]:
+            dataset = TUDataset(
+                root=self.root,
+                name=self.dataset_name,
+                transform=T.Compose(self.transform),
+            )
+        else:
+            raise NotImplementedError(
+                "GraphDataModule currently only loads TUDataset."
+            )
 
         dataset = dataset.shuffle()
 

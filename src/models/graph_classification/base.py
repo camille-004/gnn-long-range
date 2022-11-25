@@ -10,9 +10,12 @@ from torch_geometric.data import Data
 class BaseGraphClassifier(pl.LightningModule):
     """Base graph classifier."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, num_layers, **kwargs) -> None:
         super().__init__()
         pl.utilities.seed.seed_everything(1)
+
+        self.num_layers = num_layers
+
         self._model_name = "base_graph_clf"
 
         self.num_features: int = 0

@@ -12,9 +12,11 @@ gat_config = config["gat_params"]
 class GraphLevelGAT(BaseGraphClassifier):
     """PyTorch Lightning module of GAT for graph classification."""
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__()
+    def __init__(self, num_layers, **kwargs) -> None:
+        super().__init__(num_layers)
         self._model_name = "node_GAT"
+
+        print(self.num_layers)
 
         self.num_features: int = (
             kwargs["num_features"]
