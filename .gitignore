@@ -134,6 +134,17 @@ dmypy.json
 # Data directory
 /data
 
-# Wandb
+# Wandb, data
+/ENZYMES/
+/IMDB-BINARY/
+/wandb/
+/cora*/
+/imdb*/
+/enzyme*/
+/IMDB*/
+/ENZYMES*/
+/notebooks/wandb/
+/PROTEINS*/
 /src/wandb/*
-/wandb/*
+/src/models/wandb/*
+/data/*

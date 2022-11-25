@@ -1,8 +1,32 @@
 {
-  "gcn": {
-    "hidden_dim": 64,
-    "lr": 0.01,
-    "dropout": 0.8,
-    "weight_decay": 5e-4
-  }
+    "num_features_default": 3,
+    "num_classes_default": 2,
+    "hidden_channels_default": 16,
+    "gat_params": {
+        "dropout": 0.6,
+        "alpha": 0.2,
+        "num_heads": 8,
+        "concat": true,
+        "lr": 0.005,
+        "weight_decay": 5e-4
+    },
+    "gin_params": {
+        "dropout": 0.5,
+        "lr": 0.01,
+        "weight_decay": 0.01
+    },
+    "gcn_params": {
+        "node": {
+            "hidden_channels": 16,
+            "dropout": 0.5,
+            "lr": 0.01,
+            "weight_decay": 5e-4
+        },
+        "graph": {
+            "hidden_channels": 64,
+            "dropout": 0.5,
+            "lr": 0.01,
+            "weight_decay": 5e-4
+        }
+    }
 }

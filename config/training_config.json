@@ -1,4 +1,5 @@
 {
-  "max_epochs": 200,
-  "early_stopping": 10
+    "early_stopping_patience_default": 5,
+    "early_stopping_min_delta_default": 1e-3,
+    "max_epochs_default": 2500
 }

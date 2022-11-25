@@ -6,4 +6,4 @@ dependencies:
   - python=3.9
   - pip
   - pip:
-      - -r requirements_cpu.txt
+      - -r requirements.txt
