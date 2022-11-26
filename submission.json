@@ -1,0 +1,4 @@
+{
+    "dockerhub-id": "camille004/gnn",
+    "build-script": "python run.py graph gat"
+}

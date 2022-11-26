@@ -1,4 +1,4 @@
 lint:
-	black .
-	flake8
-	isort .
+	black src
+	flake8 src
+	isort src

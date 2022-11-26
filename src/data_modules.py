@@ -136,6 +136,9 @@ class NodeDataModule(pl.LightningDataModule):
 
 
 class GraphDataModule(pl.LightningDataModule):
+    """Data module for node classification datasets, particularly
+    TU datasets."""
+
     def __init__(self, **kwargs) -> None:
         super().__init__()
 

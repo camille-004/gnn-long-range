@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - cudatoolkit=11.6
-  - pip
+  - pytorch==1.12.1
+  - cudatoolkit==11.6
   - pip:
-      - -r requirements.txt
+        - -r requirements.txt

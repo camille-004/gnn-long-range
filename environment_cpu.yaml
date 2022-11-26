@@ -4,6 +4,6 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - pip
+  - pytorch==1.12.1
   - pip:
-      - -r requirements.txt
+        - -r requirements.txt
