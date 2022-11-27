@@ -7,7 +7,9 @@ dependencies:
   - pytorch
   - pytorch-cuda=11.7
   - wandb
-  - pytorch_lightning
   - pip
+  - black
+  - isort
+  - flake8
   - pip:
       - -r requirements_gpu.txt

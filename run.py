@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 
 # Set up CLI
 parser.add_argument("classification_task", choices=["graph", "node"], type=str)
-parser.add_argument("model", choices=["gat"], type=str)
+parser.add_argument("model", choices=["gat", "gin"], type=str)
 parser.add_argument("--n_hidden_layers", default=1, type=int)
 parser.add_argument("--n_heads", default=1, type=int)
 

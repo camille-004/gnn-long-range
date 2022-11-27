@@ -19,3 +19,8 @@ torch-spline-conv==1.2.1+pt113cu117
 tqdm==4.64.1
 typing_extensions
 urllib3==1.26.13
+wandb~=0.13.5
+yaml~=0.2.5
+pyyaml~=6.0
+setuptools~=65.5.1
+pytorch_lightning==1.8.3.post1

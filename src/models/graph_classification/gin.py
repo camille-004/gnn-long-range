@@ -25,8 +25,10 @@ class GraphLevelGINWithCat(BaseGraphClassifier):
     """PyTorch Lightning module of GIN with graph embedding
     concatenation for graph classification."""
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__()
+    def __init__(
+        self, n_hidden: int, activation: nn.Module = ReLU(), **kwargs
+    ) -> None:
+        super().__init__(n_hidden, activation)
         self._model_name = "graph_GIN_cat"
 
         self.num_features: int = (
@@ -118,8 +120,10 @@ class GraphLevelGINWithCat(BaseGraphClassifier):
 class GraphLevelGIN(BaseGraphClassifier):
     """PyTorch Lightning module of GIN for graph classification."""
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__()
+    def __init__(
+        self, n_hidden: int, activation: nn.Module = ReLU(), **kwargs
+    ) -> None:
+        super().__init__(n_hidden, activation)
         self._model_name = "graph_GIN"
 
         self.num_features: int = (
@@ -151,49 +155,60 @@ class GraphLevelGIN(BaseGraphClassifier):
             else gin_config["weight_decay"]
         )
 
+        hidden = []
+
+        for i in range(1, self.n_hidden + 1):
+            hidden.append((Dropout(p=self.dropout), f"x{i} -> x{i}d"))
+            hidden.append(
+                (
+                    GINConv(
+                        nn.Sequential(
+                            Linear(self.hidden_channels, self.hidden_channels),
+                            self.activation,
+                            Linear(self.hidden_channels, self.hidden_channels),
+                            self.activation,
+                            BatchNorm1d(self.hidden_channels),
+                        )
+                    ),
+                    f"x{i}d, edge_index -> x{i + 1}",
+                )
+            )
+
         self.model = Sequential(
             "x, edge_index, batch_index",
             [
+                (Dropout(p=self.dropout), "x -> xd"),
                 (
                     GINConv(
                         nn.Sequential(
                             Linear(self.num_features, self.hidden_channels),
-                            ReLU(),
+                            self.activation,
                             Linear(self.hidden_channels, self.hidden_channels),
+                            self.activation,
+                            BatchNorm1d(self.hidden_channels),
                         )
                     ),
-                    "x, edge_index -> x1",
+                    "xd, edge_index -> x1",
                 ),
-                (ReLU(), "x1 -> x1a"),
-                (BatchNorm1d(self.hidden_channels), "x1a -> x1b"),
+                *hidden,
                 (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            ReLU(),
-                            Linear(self.hidden_channels, self.hidden_channels),
-                        )
-                    ),
-                    "x1b, edge_index -> x2",
+                    global_mean_pool,
+                    f"x{n_hidden}, batch_index -> x{n_hidden + 2}",
                 ),
-                (ReLU(), "x2 -> x2a"),
-                (BatchNorm1d(self.hidden_channels), "x2a -> x2b"),
                 (
                     Linear(self.hidden_channels, self.hidden_channels),
-                    "x2b -> x3",
+                    f"x{n_hidden + 2} -> x{n_hidden + 3}",
                 ),
-                (ReLU(), "x3 -> x3a"),
-                (Dropout(p=self.dropout), "x3a -> x3d"),  # Should be p=0.5
+                (self.activation, f"x{n_hidden + 3} -> x{n_hidden + 3}a"),
                 (
-                    Linear(self.hidden_channels, self.hidden_channels),
-                    "x3d -> x4",
+                    Dropout(p=self.dropout),
+                    f"x{n_hidden + 3}a -> x{n_hidden + 3}d",
                 ),
-                (global_mean_pool, "x4, batch_index -> x5"),
-                (Dropout(p=self.dropout), "x5 -> x5d"),
                 (
                     Linear(self.hidden_channels, self.num_classes),
-                    "x5d -> x_out",
+                    f"x{n_hidden + 3}d -> x{n_hidden + 4}",
                 ),
+                (LogSoftmax(), f"x{n_hidden + 4} -> x_out"),
             ],
         )
 
