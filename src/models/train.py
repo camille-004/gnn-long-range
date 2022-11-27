@@ -221,10 +221,10 @@ def train_module(
     model_dirichlet_energies = _model.get_energies()
 
     if plot_energies:
-        plt.plot(model_dirichlet_energies)
+        plt.plot(model_dirichlet_energies, color="black")
         plt.title(
             f"{_model.model_name}-{_model.n_hidden} Hidden - Dirichlet Energy",
-            fontsize=10,
+            fontsize=14,
         )
         plt.xlabel("Layer ID")
         plt.ylabel("Dirichlet Energy")

@@ -9,7 +9,7 @@ from torch_geometric.nn import GCNConv
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.utils import to_dense_adj
 
-from src.utils import load_config
+from src.utils import load_config, dirichlet_energy
 
 from .base import BaseNodeClassifier
 
@@ -73,7 +73,8 @@ class NodeLevelGCN(BaseNodeClassifier):
         self.energies = None
 
     def forward(self, x: Any, edge_index: Any) -> Tensor:
-        x = self.conv_in(x, edge_index)
+        """Node GCN forward pass."""
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.energies = []
 
@@ -88,14 +89,23 @@ class NodeLevelGCN(BaseNodeClassifier):
             torch.eye(num_nodes, dtype=torch.float, device=device) - adj_weight
         )
 
+        x = self.conv_in(x, edge_index)
+
+        # Calculate energy of input layer
+        self.energies.append(dirichlet_energy(x, laplacian_weight))
+        x = self.activation(x)
+
         for i in range(self.n_hidden):
             x = self.hidden[i](x, edge_index)
-            x = self.activation(x)
-            energy = torch.trace(
-                torch.matmul(torch.matmul(x.t(), laplacian_weight), x)
-            )
-            self.energies.append(energy.item())
+
+            # Calculate energy of hidden layers
+            self.energies.append(dirichlet_energy(x, laplacian_weight))
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         x = self.conv_out(x, edge_index)
+
+        # Calculate energy of output layer
+        self.energies.append(dirichlet_energy(x, laplacian_weight))
+
+        x = self.activation(x)
         return F.log_softmax(x, dim=1)
