@@ -1,5 +1,6 @@
 from typing import Dict, Tuple, Type, Union
 
+import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch.cuda
 import torch.nn as nn
@@ -154,6 +155,7 @@ def train_module(
         "early_stopping_min_delta_default"
     ],
     max_epochs: int = training_config["max_epochs_default"],
+    plot_energies: bool = False,
 ) -> Dict[str, Dict[str, float]]:
     """
     Set up WandB logger and PTL Trainer, train input model on input dataset,
@@ -172,6 +174,8 @@ def train_module(
         Minimum delta for early stopping.
     max_epochs : int
         Maximum number of epochs for training.
+    plot_energies : int
+        Whether to plot Dirichlet energy after training.
     Returns
     -------
     Dict[str, Dict[str, float]]
@@ -201,7 +205,7 @@ def train_module(
 
     model_checkpoint = ModelCheckpoint(monitor="val_accuracy", mode="max")
     callbacks.append(model_checkpoint)
-    device = ("gpu" if torch.cuda.is_available() else "cpu")
+    device = "gpu" if torch.cuda.is_available() else "cpu"
 
     trainer = pl.Trainer(
         logger=wandb_logger,
@@ -214,15 +218,21 @@ def train_module(
     trainer.fit(model=_model, datamodule=_data_module)
     wandb.finish()
 
+    model_dirichlet_energies = _model.get_energies()
+
+    if plot_energies:
+        plt.plot(model_dirichlet_energies)
+        plt.title(
+            f"{_model.model_name}-{_model.n_hidden} Hidden - Dirichlet Energy",
+            fontsize=10,
+        )
+        plt.xlabel("Layer ID")
+        plt.ylabel("Dirichlet Energy")
+        plt.show()
+
     val_results = trainer.validate(_model, datamodule=_data_module)
     test_results = trainer.test(_model, datamodule=_data_module)
     val_results.extend(test_results)
     val_results[0].update(val_results[1])
     model_results = val_results[0]
     return {_model.model_name: model_results}
-
-
-if __name__ == "__main__":
-    wandb.login()
-    data, model = prepare_training("graph", "gat", 2, "IMDB-BINARY")
-    print(train_module(data, model))

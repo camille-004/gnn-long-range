@@ -129,9 +129,7 @@ class GraphLevelGIN(BaseGraphClassifier):
 
 
 class GraphLeveLGINWithJK(BaseGraphClassifier):
-    def __init__(
-        self, n_hidden: int, activation: nn.Module = None, **kwargs
-    ):
+    def __init__(self, n_hidden: int, activation: nn.Module = None, **kwargs):
         super().__init__(n_hidden, activation)
 
         if self.activation is None:

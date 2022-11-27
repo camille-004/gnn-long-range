@@ -1,4 +1,4 @@
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, List, Literal, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.data import Data
+
+Mode = Literal["train", "val", "test"]
 
 
 class BaseNodeClassifier(pl.LightningModule):
@@ -39,35 +41,56 @@ class BaseNodeClassifier(pl.LightningModule):
         """
         return self._model_name
 
-    def forward(self, data: Data, mode: str = "train") -> Tuple[Tensor, Any]:
+    def forward(self, x: Any, edge_index: Any) -> Tensor:
         """
-        GAT Forward pass.
+        Forward pass.
+
         Parameters
         ----------
-        data : Data
-            Input dataset.
-        mode : bool
-            Which subset to forward pass through.
+        x : Any
+            Node features.
+        edge_index : Any
+            Adjacency matrix.
+
         Returns
         -------
-        Tuple[Tensor, Any]
+        Tensor
+            Output of the forward pass.
         """
-        x, edge_index = data.x, data.edge_index
-        x_out = self.model(x, edge_index)
+        raise NotImplementedError
+
+    def step_util(self, batch: Data, mode: Mode) -> Tuple[Tensor, Any]:
+        """
+        Model step util. To be used for training, validation, and testing.
+
+        Parameters
+        ----------
+        batch : Data
+            Data batch.
+        mode : Mode
+            Mask of input data.
+
+        Returns
+        -------
+        Tensor
+        """
+        x, edge_index = batch.x, batch.edge_index
+        x_out = self.forward(x, edge_index)
 
         if mode == "train":
-            mask = data.train_mask
+            mask = batch.train_mask
         elif mode == "val":
-            mask = data.val_mask
+            mask = batch.val_mask
         elif mode == "test":
-            mask = data.test_mask
+            mask = batch.test_mask
         else:
             assert False, f"Unknown forward mode: {mode}"
 
-        # loss = F.nll_loss(x_out[mask], data.y[mask])
-        loss = self.loss_fn(x_out[mask], data.y[mask])
+        loss = self.loss_fn(x_out[mask], batch.y[mask])
+
+        # Metrics
         pred = x_out[mask].argmax(-1)
-        accuracy = (pred == data.y[mask]).sum() / pred.shape[0]
+        accuracy = (pred == batch.y[mask]).sum() / pred.shape[0]
 
         return loss, accuracy
 
@@ -84,7 +107,7 @@ class BaseNodeClassifier(pl.LightningModule):
         -------
         Tensor
         """
-        loss, accuracy = self.forward(batch, mode="train")
+        loss, accuracy = self.step_util(batch, "train")
 
         self.log("train_loss", loss)
         self.log("train_accuracy", accuracy)
@@ -104,7 +127,7 @@ class BaseNodeClassifier(pl.LightningModule):
         -------
         Tensor
         """
-        loss, accuracy = self.forward(batch, mode="val")
+        loss, accuracy = self.step_util(batch, "val")
 
         self.log("val_loss", loss)
         self.log("val_accuracy", accuracy)
@@ -124,7 +147,7 @@ class BaseNodeClassifier(pl.LightningModule):
         -------
         Tensor
         """
-        loss, accuracy = self.forward(batch, mode="test")
+        loss, accuracy = self.step_util(batch, "test")
 
         self.log("test_loss", loss)
         self.log("test_accuracy", accuracy)
@@ -142,3 +165,20 @@ class BaseNodeClassifier(pl.LightningModule):
         return torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.weight_decay
         )
+
+    def get_energies(self) -> List[float]:
+        """
+        Get the list of Dirichlet energies at each layer after training the
+        model.
+
+        Returns
+        -------
+        List[float]
+            List of Dirichlet energies.
+        """
+        if self.energies is None:
+            raise RuntimeError(
+                f"Train {self.model_name} the to get Dirichlet energies."
+            )
+
+        return self.energies

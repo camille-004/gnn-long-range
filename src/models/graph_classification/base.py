@@ -36,6 +36,7 @@ class BaseGraphClassifier(pl.LightningModule):
     def model_name(self) -> str:
         """
         Get the model name.
+
         Returns
         -------
         str
@@ -44,16 +45,35 @@ class BaseGraphClassifier(pl.LightningModule):
         return self._model_name
 
     def forward(self, x: Any, edge_index: Any, batch_index: Any) -> Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x : Any
+            Node features.
+        edge_index : Any
+            Adjacency matrix.
+        batch_index : Any
+            Batch index.
+
+        Returns
+        -------
+        Tensor
+            Output of the forward pass.
+        """
         x_out = self.model(x, edge_index, batch_index)
         return x_out
 
     def step_util(self, batch: Data) -> Tuple[Tensor, Any]:
         """
         Model step util. To be used for training, validation, and testing.
+
         Parameters
         ----------
         batch : Data
             Data batch.
+
         Returns
         -------
         Tensor

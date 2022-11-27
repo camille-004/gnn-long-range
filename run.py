@@ -11,11 +11,12 @@ parser = argparse.ArgumentParser()
 
 # Set up CLI
 parser.add_argument("classification_task", choices=["graph", "node"], type=str)
-parser.add_argument("model", choices=["gat", "gin", "gin_jk"], type=str)
+parser.add_argument("model", choices=["gat", "gcn", "gin", "gin_jk"], type=str)
 parser.add_argument("--activation", choices=["elu", "relu", "tanh"], type=str)
 parser.add_argument("--n_hidden_layers", default=1, type=int)
 parser.add_argument("--n_heads", default=1, type=int)
 parser.add_argument("--jk_mode", default="none", type=str)
+parser.add_argument("--plot_energy", action="store_true")
 
 if __name__ == "__main__":
     test_names = Path(config["test_dir"], "test_name.txt")
@@ -31,8 +32,16 @@ if __name__ == "__main__":
     else:
         dataset = test_datasets[1]
 
+    print(args.plot_energy)
+
     data, model = prepare_training(
-        task, args.model, args.n_hidden_layers, args.activation, dataset, num_heads=args.n_heads, mode=args.jk_mode
+        task,
+        args.model,
+        args.n_hidden_layers,
+        args.activation,
+        dataset,
+        num_heads=args.n_heads,
+        mode=args.jk_mode,
     )
 
     if task == "graph":
@@ -42,5 +51,5 @@ if __name__ == "__main__":
         assert data.num_features == 1433
         assert data.num_classes == 7
 
-    results = train_module(data, model)
+    results = train_module(data, model, plot_energies=args.plot_energy)
     print(results)

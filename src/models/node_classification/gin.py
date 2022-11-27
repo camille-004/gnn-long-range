@@ -14,7 +14,9 @@ gin_config = config["gin_params"]
 class NodeLevelGIN(BaseNodeClassifier):
     """PyTorch Lightning module of GIN for graph classification."""
 
-    def __init__(self, n_hidden: int, activation: nn.Module = None, **kwargs) -> None:
+    def __init__(
+        self, n_hidden: int, activation: nn.Module = None, **kwargs
+    ) -> None:
         super().__init__(n_hidden, activation)
 
         if self.activation is None:
@@ -68,7 +70,9 @@ class NodeLevelGIN(BaseNodeClassifier):
                 )
             )
             hidden.append((self.activation, f"x{i + 1} -> x{i + 1}a"))
-            hidden.append((BatchNorm1d(self.hidden_channels), f"x{i + 1}a -> x{i + 1}b"))
+            hidden.append(
+                (BatchNorm1d(self.hidden_channels), f"x{i + 1}a -> x{i + 1}b")
+            )
 
         self.model = Sequential(
             "x, edge_index",
