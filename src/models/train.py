@@ -1,6 +1,8 @@
 from typing import Dict, Tuple, Type, Union
 
 import pytorch_lightning as pl
+import torch.cuda
+import torch.nn as nn
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
@@ -9,14 +11,8 @@ from src.data_modules import GraphDataModule, NodeDataModule
 from src.models.graph_classification.base import BaseGraphClassifier
 from src.models.graph_classification.gat import GraphLevelGAT
 from src.models.graph_classification.gcn import GraphLevelGCN
-
-# isort: off
-from src.models.graph_classification.gin import (
-    GraphLevelGIN,
-    GraphLevelGINWithCat,
-)
-
-# isort: on
+from src.models.graph_classification.gin import (GraphLevelGIN,
+                                                 GraphLeveLGINWithJK)
 from src.models.node_classification.base import BaseNodeClassifier
 from src.models.node_classification.gat import NodeLevelGAT
 from src.models.node_classification.gcn import NodeLevelGCN
@@ -31,6 +27,7 @@ def get_model(
     task: str, model_name: str
 ) -> Type[Union[BaseGraphClassifier, BaseNodeClassifier]]:
     """
+    Return the type of model to use from the model name.
 
     Parameters
     ----------
@@ -50,7 +47,7 @@ def get_model(
             "gat": GraphLevelGAT,
             "gcn": GraphLevelGCN,
             "gin": GraphLevelGIN,
-            "gin_cat": GraphLevelGINWithCat,
+            "gin_jk": GraphLeveLGINWithJK,
         },
         "node": {
             "gat": NodeLevelGAT,
@@ -67,10 +64,32 @@ def get_model(
     return model_map[task][model_name]
 
 
+def get_activation(activation: str = "relu") -> nn.Module:
+    """
+    Get the instance of an activation function from the function name.
+
+    Parameters
+    ----------
+    activation : str
+        Name of the activation function.
+
+    Returns
+    -------
+    nn.Module
+        Instance of the activation function
+
+    """
+    activation_map = {"relu": nn.ReLU(), "elu": nn.ELU(), "tanh": nn.Tanh()}
+
+    assert activation in activation_map.keys(), "Unknown activation function."
+    return activation_map[activation]
+
+
 def prepare_training(
     task: str,
     _model: str,
     n_hidden: int,
+    activation: str = None,
     dataset_name: str = data_config["node"]["node_data_name_default"],
     **kwargs,
 ) -> Tuple[
@@ -84,12 +103,15 @@ def prepare_training(
     task : str
         Either "node" or "graph" for node or graph classification,
         respectively.
-    n_hidden : int
-        Number of hidden layers in the neural network.
-    dataset_name : str
-        Name of dataset name in DataModule.
     _model : str
         Name of model to train.
+    n_hidden : int
+        Number of hidden layers in the neural network.
+    activation : str
+        Activation function to use in the neural network.
+    dataset_name : str
+        Name of dataset name in DataModule.
+
     Returns
     -------
     Tuple[
@@ -105,9 +127,15 @@ def prepare_training(
     else:
         _data_module = NodeDataModule(dataset_name=dataset_name)
 
+    if activation is not None:
+        activation_fn = get_activation(activation)
+    else:
+        activation_fn = None
+
     model_type = get_model(task, _model)
     model_instance = model_type(
         n_hidden=n_hidden,
+        activation=activation_fn,
         num_features=_data_module.num_features,
         num_classes=_data_module.num_classes,
         **kwargs,
@@ -173,13 +201,14 @@ def train_module(
 
     model_checkpoint = ModelCheckpoint(monitor="val_accuracy", mode="max")
     callbacks.append(model_checkpoint)
+    device = ("gpu" if torch.cuda.is_available() else "cpu")
 
     trainer = pl.Trainer(
         logger=wandb_logger,
         log_every_n_steps=1,
         callbacks=callbacks,
         max_epochs=max_epochs,
-        # accelerator="gpu",
+        accelerator=device,
     )
 
     trainer.fit(model=_model, datamodule=_data_module)

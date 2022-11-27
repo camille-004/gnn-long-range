@@ -11,9 +11,11 @@ parser = argparse.ArgumentParser()
 
 # Set up CLI
 parser.add_argument("classification_task", choices=["graph", "node"], type=str)
-parser.add_argument("model", choices=["gat", "gin"], type=str)
+parser.add_argument("model", choices=["gat", "gin", "gin_jk"], type=str)
+parser.add_argument("--activation", choices=["elu", "relu", "tanh"], type=str)
 parser.add_argument("--n_hidden_layers", default=1, type=int)
 parser.add_argument("--n_heads", default=1, type=int)
+parser.add_argument("--jk_mode", default="none", type=str)
 
 if __name__ == "__main__":
     test_names = Path(config["test_dir"], "test_name.txt")
@@ -30,7 +32,7 @@ if __name__ == "__main__":
         dataset = test_datasets[1]
 
     data, model = prepare_training(
-        task, args.model, args.n_hidden_layers, dataset, num_heads=args.n_heads
+        task, args.model, args.n_hidden_layers, args.activation, dataset, num_heads=args.n_heads, mode=args.jk_mode
     )
 
     if task == "graph":

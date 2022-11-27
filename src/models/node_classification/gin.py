@@ -14,8 +14,12 @@ gin_config = config["gin_params"]
 class NodeLevelGIN(BaseNodeClassifier):
     """PyTorch Lightning module of GIN for graph classification."""
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__()
+    def __init__(self, n_hidden: int, activation: nn.Module = None, **kwargs) -> None:
+        super().__init__(n_hidden, activation)
+
+        if self.activation is None:
+            self.activation = ReLU()
+
         self._model_name = "node_GIN"
 
         self.num_features: int = (
@@ -47,42 +51,59 @@ class NodeLevelGIN(BaseNodeClassifier):
             else gin_config["weight_decay"]
         )
 
+        hidden = []
+
+        for i in range(1, self.n_hidden + 1):
+            hidden.append((Dropout(p=self.dropout), f"x{i}b -> x{i}d"))
+            hidden.append(
+                (
+                    GINConv(
+                        nn.Sequential(
+                            Linear(self.hidden_channels, self.hidden_channels),
+                            self.activation,
+                            Linear(self.hidden_channels, self.hidden_channels),
+                        )
+                    ),
+                    f"x{i}d, edge_index -> x{i + 1}",
+                )
+            )
+            hidden.append((self.activation, f"x{i + 1} -> x{i + 1}a"))
+            hidden.append((BatchNorm1d(self.hidden_channels), f"x{i + 1}a -> x{i + 1}b"))
+
         self.model = Sequential(
             "x, edge_index",
             [
+                (Dropout(p=self.dropout), "x -> xd"),
                 (
                     GINConv(
                         nn.Sequential(
                             Linear(self.num_features, self.hidden_channels),
-                            ReLU(),
+                            self.activation,
                             Linear(self.hidden_channels, self.hidden_channels),
                         )
                     ),
-                    "x, edge_index -> x1",
+                    "xd, edge_index -> x1",
                 ),
-                (ReLU(), "x1 -> x1a"),
+                (self.activation, "x1 -> x1a"),
                 (BatchNorm1d(self.hidden_channels), "x1a -> x1b"),
-                (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            ReLU(),
-                            Linear(self.hidden_channels, self.hidden_channels),
-                        )
-                    ),
-                    "x1b, edge_index -> x2",
-                ),
-                (ReLU(), "x2 -> x2a"),
-                (BatchNorm1d(self.hidden_channels), "x2a -> x2b"),
+                *hidden,
                 (
                     Linear(self.hidden_channels, self.hidden_channels),
-                    "x2b -> x3",
+                    f"x{n_hidden + 1} -> x{n_hidden + 2}",
                 ),
-                (ReLU(), "x3 -> x3a"),
-                (Dropout(p=self.dropout), "x3a -> x3d"),
-                (Linear(self.hidden_channels, self.num_classes), "x3d -> x4"),
-                (LogSoftmax(dim=-1), "x4 -> x_out"),
+                (self.activation, f"x{n_hidden + 2} -> x{n_hidden + 2}a"),
+                (
+                    Dropout(p=self.dropout),
+                    f"x{n_hidden + 2}a -> x{n_hidden + 2}d",
+                ),
+                (
+                    Linear(self.hidden_channels, self.num_classes),
+                    f"x{n_hidden + 2}d -> x{n_hidden + 3}",
+                ),
+                (LogSoftmax(), f"x{n_hidden + 3} -> x_out"),
             ],
         )
+
+        print(self.model)
 
         self.loss_fn = F.cross_entropy

@@ -1,7 +1,10 @@
-import torch
+from typing import Any
+
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 from torch.nn import BatchNorm1d, Dropout, Linear, LogSoftmax, ReLU
+from torch_geometric.nn import JumpingKnowledge
 
 # isort: off
 from torch_geometric.nn import (  # noqa
@@ -21,109 +24,17 @@ config = load_config("model_config.yaml")
 gin_config = config["gin_params"]
 
 
-class GraphLevelGINWithCat(BaseGraphClassifier):
-    """PyTorch Lightning module of GIN with graph embedding
-    concatenation for graph classification."""
-
-    def __init__(
-        self, n_hidden: int, activation: nn.Module = ReLU(), **kwargs
-    ) -> None:
-        super().__init__(n_hidden, activation)
-        self._model_name = "graph_GIN_cat"
-
-        self.num_features: int = (
-            kwargs["num_features"]
-            if "num_features" in kwargs.keys()
-            else config["num_features_default"]
-        )
-        self.num_classes: int = (
-            kwargs["num_classes"]
-            if "num_classes" in kwargs.keys()
-            else config["num_classes_default"]
-        )
-        self.hidden_channels: int = (
-            kwargs["hidden_channels"]
-            if "hidden_channels" in kwargs.keys()
-            else config["hidden_channels_default"]
-        )
-        self.dropout: float = (
-            kwargs["dropout"]
-            if "dropout" in kwargs.keys()
-            else gin_config["dropout"]
-        )
-        self.lr: float = (
-            kwargs["lr"] if "lr" in kwargs.keys() else gin_config["lr"]
-        )
-        self.weight_decay: float = (
-            kwargs["weight_decay"]
-            if "weight_decay" in kwargs.keys()
-            else gin_config["weight_decay"]
-        )
-
-        self.model = Sequential(
-            "x, edge_index, batch_index",
-            [
-                (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.num_features, self.hidden_channels),
-                            BatchNorm1d(self.hidden_channels),
-                            ReLU(),
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            ReLU(),
-                        ),
-                    ),
-                    "x, edge_index -> x1",
-                ),
-                (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            BatchNorm1d(self.hidden_channels),
-                            ReLU(),
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            ReLU(),
-                        )
-                    ),
-                    "x1, edge_index -> x2",
-                ),
-                (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            BatchNorm1d(self.hidden_channels),
-                            ReLU(),
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            ReLU(),
-                        )
-                    ),
-                    "x2, edge_index -> x3",
-                ),
-                (global_add_pool, "x1, batch_index -> x1"),
-                (global_add_pool, "x2, batch_index -> x2"),
-                (global_add_pool, "x3, batch_index -> x3"),
-                (
-                    lambda x1, x2, x3: torch.cat((x1, x2, x3), dim=1),
-                    "x1, x2, x3 -> x",
-                ),
-                (Linear(self.hidden_channels * 3, self.hidden_channels * 3)),
-                (ReLU()),
-                (Dropout(p=self.dropout)),
-                (Linear(self.hidden_channels * 3, self.num_classes)),
-                (LogSoftmax(), "x -> x_out"),
-            ],
-        )
-
-        self.loss_fn = F.cross_entropy
-
-
 class GraphLevelGIN(BaseGraphClassifier):
     """PyTorch Lightning module of GIN for graph classification."""
 
     def __init__(
-        self, n_hidden: int, activation: nn.Module = ReLU(), **kwargs
+        self, n_hidden: int, activation: nn.Module = None, **kwargs
     ) -> None:
         super().__init__(n_hidden, activation)
+
+        if self.activation is None:
+            self.activation = ReLU()
+
         self._model_name = "graph_GIN"
 
         self.num_features: int = (
@@ -212,4 +123,104 @@ class GraphLevelGIN(BaseGraphClassifier):
             ],
         )
 
+        print(self.model)
+
         self.loss_fn = F.cross_entropy
+
+
+class GraphLeveLGINWithJK(BaseGraphClassifier):
+    def __init__(
+        self, n_hidden: int, activation: nn.Module = None, **kwargs
+    ):
+        super().__init__(n_hidden, activation)
+
+        if self.activation is None:
+            self.activation = ReLU()
+
+        self._model_name = "graph_GIN"
+
+        self.num_features: int = (
+            kwargs["num_features"]
+            if "num_features" in kwargs.keys()
+            else config["num_features_default"]
+        )
+        self.num_classes: int = (
+            kwargs["num_classes"]
+            if "num_classes" in kwargs.keys()
+            else config["num_classes_default"]
+        )
+        self.hidden_channels: int = (
+            kwargs["hidden_channels"]
+            if "hidden_channels" in kwargs.keys()
+            else config["hidden_channels_default"]
+        )
+        self.dropout: float = (
+            kwargs["dropout"]
+            if "dropout" in kwargs.keys()
+            else gin_config["dropout"]
+        )
+        self.lr: float = (
+            kwargs["lr"] if "lr" in kwargs.keys() else gin_config["lr"]
+        )
+        self.weight_decay: float = (
+            kwargs["weight_decay"]
+            if "weight_decay" in kwargs.keys()
+            else gin_config["weight_decay"]
+        )
+
+        if "jk_mode" in kwargs.keys():
+            assert kwargs["jk_mode"] in ["cat", "max", "lstm"]
+            self.mode = kwargs["jk_mode"]
+        else:
+            self.mode = "max"
+
+        self.conv_1 = GINConv(
+            nn.Sequential(
+                Linear(self.num_features, self.hidden_channels),
+                self.activation,
+                Linear(self.hidden_channels, self.hidden_channels),
+                self.activation,
+                BatchNorm1d(self.hidden_channels),
+            )
+        )
+        self.hidden = nn.ModuleList()
+
+        for _ in range(n_hidden):
+            self.hidden.append(
+                GINConv(
+                    nn.Sequential(
+                        Linear(self.hidden_channels, self.hidden_channels),
+                        self.activation,
+                        Linear(self.hidden_channels, self.hidden_channels),
+                        self.activation,
+                        BatchNorm1d(self.hidden_channels),
+                    )
+                )
+            )
+
+        self.jk = JumpingKnowledge(self.mode)
+
+        if self.mode == "cat":
+            self.lin_1 = Linear(
+                self.hidden_channels * self.n_hidden, self.hidden_channels
+            )
+        else:
+            self.lin_1 = Linear(self.hidden_channels, self.hidden_channels)
+
+        self.lin_2 = Linear(self.hidden_channels, self.num_classes)
+
+    def forward(self, x: Any, edge_index: Any, batch_index: Any) -> Tensor:
+        x = self.conv_1(x, edge_index)
+        xs = []
+
+        for conv in self.hidden:
+            x = conv(x, edge_index)
+            xs += [x]
+
+        x = self.jk(xs)
+        x = global_mean_pool(x, batch_index)
+        x = self.activation(self.lin_1(x))
+        x = F.dropout(x, p=self.dropout)
+        x = self.lin_2(x)
+
+        return F.log_softmax(x, dim=-1)

@@ -15,9 +15,13 @@ class GraphLevelGAT(BaseGraphClassifier):
     """PyTorch Lightning module of GAT for graph classification."""
 
     def __init__(
-        self, n_hidden: int, activation: nn.Module = ELU(), **kwargs
+        self, n_hidden: int, activation: nn.Module = None, **kwargs
     ) -> None:
-        super().__init__(n_hidden, activation)
+        super().__init__(n_hidden, activation, **kwargs)
+
+        if self.activation is None:
+            self.activation = ELU()
+
         self._model_name = "graph_GAT"
 
         self.num_features: int = (

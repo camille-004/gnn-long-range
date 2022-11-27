@@ -12,7 +12,7 @@ class BaseGraphClassifier(pl.LightningModule):
     """Base graph classifier."""
 
     def __init__(
-        self, n_hidden: int, activation: nn.Module(), **kwargs
+        self, n_hidden: int, activation: nn.Module() = None, **kwargs
     ) -> None:
         super().__init__()
         pl.utilities.seed.seed_everything(1)

@@ -20,6 +20,7 @@ gin_params:
   dropout: 0.5
   lr: 0.01
   weight_decay: 0.01
+  mode: none
 gcn_params:
   node:
     hidden_channels: 16
