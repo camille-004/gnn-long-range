@@ -5,21 +5,26 @@ import wandb
 from src.models.train import prepare_training, train_module
 from src.utils import load_config
 
-config = load_config("data_config.yaml")
+data_config = load_config("data_config.yaml")
+training_config = load_config("training_config.yaml")
 
 parser = argparse.ArgumentParser()
 
 # Set up CLI
 parser.add_argument("classification_task", choices=["graph", "node"], type=str)
 parser.add_argument("model", choices=["gat", "gcn", "gin", "gin_jk"], type=str)
+parser.add_argument(
+    "--max_epochs", default=training_config["max_epochs_default"], type=int
+)
 parser.add_argument("--activation", choices=["elu", "relu", "tanh"], type=str)
 parser.add_argument("--n_hidden_layers", default=1, type=int)
 parser.add_argument("--n_heads", default=1, type=int)
 parser.add_argument("--jk_mode", default="none", type=str)
 parser.add_argument("--plot_energy", action="store_true")
+parser.add_argument("--calc_influence", action="store_true")
 
 if __name__ == "__main__":
-    test_names = Path(config["test_dir"], "test_name.txt")
+    test_names = Path(data_config["test_dir"], "test_name.txt")
     test_datasets = test_names.read_text().splitlines()[1:]
 
     args = parser.parse_args()
@@ -31,8 +36,6 @@ if __name__ == "__main__":
         dataset = test_datasets[0]
     else:
         dataset = test_datasets[1]
-
-    print(args.plot_energy)
 
     data, model = prepare_training(
         task,
@@ -51,5 +54,11 @@ if __name__ == "__main__":
         assert data.num_features == 1433
         assert data.num_classes == 7
 
-    results = train_module(data, model, plot_energies=args.plot_energy)
+    results = train_module(
+        data,
+        model,
+        max_epochs=args.max_epochs,
+        plot_energies=args.plot_energy,
+        calc_influence=args.calc_influence,
+    )
     print(results)

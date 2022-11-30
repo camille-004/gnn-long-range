@@ -1,19 +1,27 @@
 from typing import Dict, Tuple, Type, Union
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pytorch_lightning as pl
-import torch.cuda
+import torch
 import torch.nn as nn
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from torch_geometric.data import Data
 
 import wandb
 from src.data_modules import GraphDataModule, NodeDataModule
 from src.models.graph_classification.base import BaseGraphClassifier
 from src.models.graph_classification.gat import GraphLevelGAT
 from src.models.graph_classification.gcn import GraphLevelGCN
-from src.models.graph_classification.gin import (GraphLevelGIN,
-                                                 GraphLeveLGINWithJK)
+
+# isort: off
+from src.models.graph_classification.gin import (
+    GraphLevelGIN,
+    GraphLeveLGINWithJK,
+)
+
+# isort: on
 from src.models.node_classification.base import BaseNodeClassifier
 from src.models.node_classification.gat import NodeLevelGAT
 from src.models.node_classification.gcn import NodeLevelGCN
@@ -156,6 +164,7 @@ def train_module(
     ],
     max_epochs: int = training_config["max_epochs_default"],
     plot_energies: bool = False,
+    calc_influence: bool = False,
 ) -> Dict[str, Dict[str, float]]:
     """
     Set up WandB logger and PTL Trainer, train input model on input dataset,
@@ -174,8 +183,10 @@ def train_module(
         Minimum delta for early stopping.
     max_epochs : int
         Maximum number of epochs for training.
-    plot_energies : int
+    plot_energies : bool
         Whether to plot Dirichlet energy after training.
+    calc_influence : bool
+        Whether to plot the influence of k-hop neighbors on a node x.
     Returns
     -------
     Dict[str, Dict[str, float]]
@@ -220,6 +231,8 @@ def train_module(
 
     model_dirichlet_energies = _model.get_energies()
 
+    val_data = next(iter(_data_module.val_dataloader()))
+
     if plot_energies:
         plt.plot(model_dirichlet_energies, color="black")
         plt.title(
@@ -230,9 +243,52 @@ def train_module(
         plt.ylabel("Dirichlet Energy")
         plt.show()
 
+    if calc_influence:
+        influence_dist = get_jacobian(_model, val_data, 5)
+        plt.hist(influence_dist)
+        plt.show()
+
     val_results = trainer.validate(_model, datamodule=_data_module)
     test_results = trainer.test(_model, datamodule=_data_module)
     val_results.extend(test_results)
     val_results[0].update(val_results[1])
     model_results = val_results[0]
     return {_model.model_name: model_results}
+
+
+def get_jacobian(
+    _model: Union[BaseGraphClassifier, BaseNodeClassifier],
+    data: Data,
+    node: int,
+) -> np.ndarray:
+    """
+    Get the Jacobian of the embeddings of neighbors at a distance r from node
+    i w.r.t. the features at node i. This will assess the effect of
+    over-squashing.
+
+    Parameters
+    ----------
+    _model : Union[BaseGraphClassifier, BaseNodeClassifier]
+        Model from which to obtain embeddings.
+    data : Data
+        Input evaluation set.
+    node : int
+        Index of the fixed node.
+
+    Returns
+    -------
+    np.ndarray
+        Distribution of influences of neighbors at a distance r from node i.
+    """
+    data.x.requires_grad = True
+    embeddings = _model(data.x, data.edge_index)[1]
+    sum_of_grads = torch.autograd.grad(
+        embeddings[node],
+        data.x,
+        torch.ones_like(embeddings[node]),
+        retain_graph=True,
+    )[0]
+    abs_grad = sum_of_grads.absolute()
+    sum_of_jacobian = abs_grad.sum(axis=1)
+    influence_y_on_x = sum_of_jacobian / sum_of_jacobian.sum(dim=0)
+    return influence_y_on_x.numpy()

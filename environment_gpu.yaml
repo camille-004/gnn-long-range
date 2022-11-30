@@ -12,5 +12,6 @@ dependencies:
   - isort
   - flake8
   - matplotlib
+  - networkx
   - pip:
       - -r requirements_gpu.txt

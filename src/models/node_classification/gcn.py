@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 
 import torch
 import torch.nn as nn
@@ -72,9 +72,8 @@ class NodeLevelGCN(BaseNodeClassifier):
         self.loss_fn = F.cross_entropy
         self.energies = None
 
-    def forward(self, x: Any, edge_index: Any) -> Tensor:
+    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """Node GCN forward pass."""
-
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.energies = []
 
@@ -89,23 +88,24 @@ class NodeLevelGCN(BaseNodeClassifier):
             torch.eye(num_nodes, dtype=torch.float, device=device) - adj_weight
         )
 
-        x = self.conv_in(x, edge_index)
+        h = self.conv_in(x, edge_index)
 
         # Calculate energy of input layer
-        self.energies.append(dirichlet_energy(x, laplacian_weight))
-        x = self.activation(x)
+        self.energies.append(dirichlet_energy(h, laplacian_weight))
+        h = self.activation(h)
 
         for i in range(self.n_hidden):
-            x = self.hidden[i](x, edge_index)
+            h = self.hidden[i](h, edge_index)
 
             # Calculate energy of hidden layers
-            self.energies.append(dirichlet_energy(x, laplacian_weight))
-            x = F.dropout(x, p=self.dropout, training=self.training)
+            self.energies.append(dirichlet_energy(h, laplacian_weight))
+            h = F.dropout(h, p=self.dropout, training=self.training)
 
-        x = self.conv_out(x, edge_index)
+        h = self.conv_out(h, edge_index)
 
         # Calculate energy of output layer
-        self.energies.append(dirichlet_energy(x, laplacian_weight))
+        self.energies.append(dirichlet_energy(h, laplacian_weight))
 
-        x = self.activation(x)
-        return F.log_softmax(x, dim=1)
+        h = self.activation(h)
+
+        return F.log_softmax(h, dim=1), h

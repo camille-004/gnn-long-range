@@ -5,11 +5,12 @@ channels:
 dependencies:
   - python=3.10
   - pytorch
-  - flake8
-  - matplotlib
-  - isort
-  - black
   - wandb
   - pip
+  - black
+  - isort
+  - flake8
+  - matplotlib
+  - networkx
   - pip:
       - - requirements_cpu.txt

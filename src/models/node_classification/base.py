@@ -77,6 +77,9 @@ class BaseNodeClassifier(pl.LightningModule):
         x, edge_index = batch.x, batch.edge_index
         x_out = self.forward(x, edge_index)
 
+        if isinstance(x_out, tuple):
+            x_out = x_out[0]
+
         if mode == "train":
             mask = batch.train_mask
         elif mode == "val":
