@@ -9,7 +9,7 @@ from torch_geometric.nn import GCNConv
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.utils import to_dense_adj
 
-from src.utils import load_config, dirichlet_energy
+from src.utils import dirichlet_energy, load_config
 
 from .base import BaseNodeClassifier
 
