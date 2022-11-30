@@ -21,7 +21,7 @@ parser.add_argument("--n_hidden_layers", default=1, type=int)
 parser.add_argument("--n_heads", default=1, type=int)
 parser.add_argument("--jk_mode", default="none", type=str)
 parser.add_argument("--plot_energy", action="store_true")
-parser.add_argument("--calc_influence", action="store_true")
+parser.add_argument("--plot_influence", action="store_true")
 
 if __name__ == "__main__":
     test_names = Path(data_config["test_dir"], "test_name.txt")
@@ -59,6 +59,6 @@ if __name__ == "__main__":
         model,
         max_epochs=args.max_epochs,
         plot_energies=args.plot_energy,
-        calc_influence=args.calc_influence,
+        plot_influence=args.plot_influence,
     )
     print(results)

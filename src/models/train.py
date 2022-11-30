@@ -171,7 +171,7 @@ def train_module(
     ],
     max_epochs: int = training_config["max_epochs_default"],
     plot_energies: bool = False,
-    calc_influence: bool = False,
+    plot_influence: bool = False,
 ) -> Dict[str, Dict[str, float]]:
     """
     Set up WandB logger and PTL Trainer, train input model on input dataset,
@@ -192,7 +192,7 @@ def train_module(
         Maximum number of epochs for training.
     plot_energies : bool
         Whether to plot Dirichlet energy after training.
-    calc_influence : bool
+    plot_influence : bool
         Whether to plot the influence of k-hop neighbors on a node x.
     Returns
     -------
@@ -251,7 +251,7 @@ def train_module(
         plt.ylabel("Dirichlet Energy")
         plt.show()
 
-    if calc_influence:
+    if plot_influence:
         n_nodes_influence = training_config["n_nodes_influence"]
         i, r = (
             np.random.choice(val_data.x.shape[0], size=n_nodes_influence),
