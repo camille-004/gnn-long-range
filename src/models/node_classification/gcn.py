@@ -74,7 +74,7 @@ class NodeLevelGCN(BaseNodeClassifier):
 
     def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """Node GCN forward pass."""
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.energies = []
 
         edge_weight = None

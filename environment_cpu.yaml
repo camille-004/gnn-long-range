@@ -12,5 +12,7 @@ dependencies:
   - flake8
   - matplotlib
   - networkx
+  - seaborn
+  - pandas
   - pip:
       - - requirements_cpu.txt

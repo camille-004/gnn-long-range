@@ -13,5 +13,7 @@ dependencies:
   - flake8
   - matplotlib
   - networkx
+  - seaborn
+  - pandas
   - pip:
       - -r requirements_gpu.txt
