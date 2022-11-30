@@ -1,9 +1,16 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
+import networkx as nx
+import pandas as pd
 import torch
 import yaml
 from torch import Tensor
+from torch_geometric.data import Data
+from torch_geometric.utils.convert import to_networkx
+
+from src.models.graph_classification.base import BaseGraphClassifier
+from src.models.node_classification.base import BaseNodeClassifier
 
 CONFIG_DIR = Path(Path(__file__).parent.parent, "config")
 
@@ -45,3 +52,75 @@ def dirichlet_energy(x: Tensor, laplacian: Tensor) -> float:
         Dirichlet energy value.
     """
     return torch.trace(torch.matmul(torch.matmul(x.t(), laplacian), x)).item()
+
+
+def k_hop_nb(data: Data, node: int, r: int) -> List[int]:
+    """
+    Return the list of nodes that are of distance r from a give node.
+
+    Parameters
+    ----------
+    data : Data
+        Input graph.
+    node : int
+        Node whose r-th-order neighborhood to return.
+    r : int
+        Order of neighborhood.
+
+    Returns
+    -------
+    List[int]
+        List of r-hop neighborhood members.
+    """
+    _G = to_networkx(data)
+    path_lengths = nx.single_source_dijkstra_path_length(_G, node)
+    return [node for node, length in path_lengths.items() if length == r]
+
+
+def get_jacobian(
+    _model: Union[BaseGraphClassifier, BaseNodeClassifier],
+    _data: Data,
+    node: int,
+    r: int,
+) -> pd.DataFrame:
+    """
+    Get the Jacobian of the embeddings of neighbors at a distance r from node
+    i w.r.t. the features at node i. This will assess the effect of
+    over-squashing.
+
+    Parameters
+    ----------
+    _model : Union[BaseGraphClassifier, BaseNodeClassifier]
+        Model from which to obtain embeddings.
+    _data : Data
+        Input evaluation set.
+    node : int
+        Index of the fixed node.
+    r : int
+        Order of neighborhood.
+
+    Returns
+    -------
+    pd.DataFrame
+        Distribution of influences of neighbors at a distance r from node i.
+    """
+    if not _data.x.requires_grad:
+        _data.x.requires_grad = True
+
+    neighbor_nodes_idx = k_hop_nb(_data, node, r)
+    print(f"Number of {r}-hop neighbors: {len(neighbor_nodes_idx)}")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    _data = _data.to(device)
+    _model = _model.to(device)
+    embeddings = _model(_data.x, _data.edge_index)[1]
+    sum_of_grads = torch.autograd.grad(
+        embeddings[node],
+        _data.x,
+        torch.ones_like(embeddings[node]),
+        retain_graph=True,
+    )[0][neighbor_nodes_idx]
+    abs_grad = sum_of_grads.absolute()
+    sum_of_jacobian = abs_grad.sum(axis=1)
+    influence_y_on_x = sum_of_jacobian / sum_of_jacobian.sum(dim=0)
+    influence_y_on_x = influence_y_on_x.cpu().numpy()
+    return pd.DataFrame(data={"influence": influence_y_on_x, "r": r})

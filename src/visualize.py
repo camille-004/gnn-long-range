@@ -6,10 +6,9 @@ import pandas as pd
 import seaborn as sns
 from torch_geometric.data import Data
 
-from models.graph_classification.base import BaseGraphClassifier
-from models.node_classification.base import BaseNodeClassifier
-from models.train import get_jacobian
-from utils import load_config
+from src.models.graph_classification.base import BaseGraphClassifier
+from src.models.node_classification.base import BaseNodeClassifier
+from src.utils import get_jacobian, load_config
 
 training_config = load_config("training_config.yaml")
 

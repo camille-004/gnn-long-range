@@ -1,7 +1,10 @@
+from typing import Any, Tuple
+
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import ELU, Dropout, LogSoftmax
-from torch_geometric.nn import GATConv, Sequential
+from torch import Tensor
+from torch.nn import ELU
+from torch_geometric.nn import GATConv
 
 from src.utils import load_config
 
@@ -54,57 +57,32 @@ class NodeLevelGAT(BaseNodeClassifier):
             else gat_config["weight_decay"]
         )
 
-        hidden = []
-
-        for i in range(1, self.n_hidden + 1):
-            hidden.append((Dropout(p=self.dropout), f"x{i}a -> x{i}d"))
-            hidden.append(
-                (
-                    GATConv(
-                        self.hidden_channels * self.num_heads,
-                        self.hidden_channels * self.num_heads,
-                        heads=self.num_heads,
-                        concat=False,
-                        dropout=self.dropout,
-                    ),
-                    f"x{i}d, edge_index -> x{i + 1}",
-                )
-            )
-            hidden.append((self.activation, f"x{i + 1} -> x{i + 1}a"))
-
-        self.model = Sequential(
-            "x, edge_index",
-            [
-                (Dropout(p=self.dropout), "x -> xd"),
-                (
-                    GATConv(
-                        self.num_features,
-                        self.hidden_channels,
-                        heads=self.num_heads,
-                        dropout=self.dropout,
-                    ),
-                    "xd, edge_index -> x1",
-                ),
-                (self.activation, "x1 -> x1a"),
-                *hidden,
-                (
-                    GATConv(
-                        self.hidden_channels * self.num_heads,
-                        self.num_classes,
-                        concat=False,
-                        dropout=self.dropout,
-                    ),
-                    f"x{n_hidden + 1}a, edge_index -> x{n_hidden + 2}",
-                ),
-                (self.activation, f"x{n_hidden + 2} -> x{n_hidden + 2}a"),
-                (
-                    Dropout(p=self.dropout),
-                    f"x{n_hidden + 2}a -> x{n_hidden + 2}d",
-                ),
-                (LogSoftmax(), f"x{n_hidden + 2}d -> x_out"),
-            ],
+        self.convs = nn.ModuleList()
+        self.convs.append(
+            GATConv(self.num_features, self.hidden_channels, self.num_heads)
         )
 
-        print(self.model)
+        for _ in range(self.n_hidden):
+            self.convs.append(
+                GATConv(
+                    self.n_hidden * self.num_heads,
+                    self.hidden_channels,
+                    self.num_heads,
+                )
+            )
 
-        self.loss_fn = F.nll_loss
+        self.convs.append(
+            GATConv(
+                self.hidden_channels * self.num_heads,
+                self.num_classes,
+                1,
+                concat=False,
+            )
+        )
+
+    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
+        for i in range(self.n_hidden + 2):
+            x = self.convs[i](x, edge_index).flatten(1)
+            x = self.activation(x)
+
+        return F.log_softmax(x, dim=1).mean(1), x
