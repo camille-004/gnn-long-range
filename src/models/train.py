@@ -1,8 +1,7 @@
+import warnings
 from typing import Dict, List, Tuple, Type, Union
 
-import matplotlib.pyplot as plt
 import networkx as nx
-import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import seaborn as sns
@@ -31,6 +30,7 @@ from src.models.node_classification.gat import NodeLevelGAT
 from src.models.node_classification.gcn import NodeLevelGCN
 from src.models.node_classification.gin import NodeLevelGIN
 from src.utils import load_config
+from src.visualize import plot_dirichlet_energies, plot_influences
 
 data_config = load_config("data_config.yaml")
 training_config = load_config("training_config.yaml")
@@ -95,6 +95,11 @@ def get_activation(activation: str = "relu") -> nn.Module:
         Instance of the activation function
 
     """
+    if activation == "relu":
+        warnings.warn(
+            f"Non-differentiable function: {activation}. Will not be able to "
+            f"plot influences."
+        )
     activation_map = {"relu": nn.ReLU(), "elu": nn.ELU(), "tanh": nn.Tanh()}
 
     assert activation in activation_map.keys(), "Unknown activation function."
@@ -235,52 +240,14 @@ def train_module(
 
     trainer.fit(model=_model, datamodule=_data_module)
     wandb.finish()
-
-    model_dirichlet_energies = _model.get_energies()
-
     val_data = next(iter(_data_module.val_dataloader()))
 
-    # TODO put these conditions in a separate visualization.py file
     if plot_energies:
-        plt.plot(model_dirichlet_energies, color="black")
-        plt.title(
-            f"{_model.model_name}-{_model.n_hidden} Hidden - Dirichlet Energy",
-            fontsize=14,
-        )
-        plt.xlabel("Layer ID")
-        plt.ylabel("Dirichlet Energy")
-        plt.show()
+        model_dirichlet_energies = _model.get_energies()
+        plot_dirichlet_energies(_model, model_dirichlet_energies)
 
     if plot_influence:
-        n_nodes_influence = training_config["n_nodes_influence"]
-        i, r = (
-            np.random.choice(val_data.x.shape[0], size=n_nodes_influence),
-            10,
-        )
-
-        fig, ax = plt.subplots(
-            1, n_nodes_influence, figsize=(5 * n_nodes_influence, 4)
-        )
-
-        for j, val in enumerate(i):
-            influences = pd.DataFrame()
-            for k in range(1, r + 1):
-                influence_dist = get_jacobian(_model, val_data, val, k)
-                if influence_dist["influence"].isnull().values.any():
-                    continue
-
-                influences = influences.append(influence_dist)
-
-            sns.violinplot(
-                data=influences.reset_index(drop=True),
-                x="r",
-                y="influence",
-                color="black",
-                ax=ax[j],
-            )
-            ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
-
-        plt.show()
+        plot_influences(_model, val_data)
 
     val_results = trainer.validate(_model, datamodule=_data_module)
     test_results = trainer.test(_model, datamodule=_data_module)
