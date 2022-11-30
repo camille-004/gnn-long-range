@@ -345,7 +345,7 @@ def get_jacobian(
 
     neighbor_nodes_idx = k_hop_nb(_data, node, r)
     print(f"Number of {r}-hop neighbors: {len(neighbor_nodes_idx)}")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     _data = _data.to(device)
     _model = _model.to(device)
     embeddings = _model(_data.x, _data.edge_index)[1]
