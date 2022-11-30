@@ -95,6 +95,8 @@ def get_activation(activation: str = "relu") -> nn.Module:
         Instance of the activation function
 
     """
+    # TODO Add warning that you can't plot influences if using ReLU 
+    # (non-differentiable)
     activation_map = {"relu": nn.ReLU(), "elu": nn.ELU(), "tanh": nn.Tanh()}
 
     assert activation in activation_map.keys(), "Unknown activation function."
