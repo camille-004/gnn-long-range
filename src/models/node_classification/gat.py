@@ -6,7 +6,7 @@ from torch import Tensor
 from torch.nn import ELU
 from torch_geometric.nn import GATConv
 
-from src.utils import load_config
+from src.utils import dirichlet_energy, get_graph_laplacian, load_config
 
 from .base import BaseNodeClassifier
 
@@ -18,9 +18,13 @@ class NodeLevelGAT(BaseNodeClassifier):
     """PyTorch Lightning module of GAT for node classification."""
 
     def __init__(
-        self, n_hidden: int, activation: nn.Module = ELU(), **kwargs
+        self, n_hidden: int, activation: nn.Module = None, **kwargs
     ) -> None:
         super().__init__(n_hidden, activation)
+
+        if activation is None:
+            self.activation = ELU()
+
         self._model_name = "node_GAT"
 
         self.num_features: int = (
@@ -65,7 +69,7 @@ class NodeLevelGAT(BaseNodeClassifier):
         for _ in range(self.n_hidden):
             self.convs.append(
                 GATConv(
-                    self.n_hidden * self.num_heads,
+                    self.hidden_channels * self.num_heads,
                     self.hidden_channels,
                     self.num_heads,
                 )
@@ -80,9 +84,18 @@ class NodeLevelGAT(BaseNodeClassifier):
             )
         )
 
-    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
-        for i in range(self.n_hidden + 2):
-            x = self.convs[i](x, edge_index).flatten(1)
-            x = self.activation(x)
+        self.loss_fn = F.cross_entropy
+        self.energies = None
 
-        return F.log_softmax(x, dim=1).mean(1), x
+    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
+        """GAT forward pass."""
+        _L = get_graph_laplacian(edge_index, x.size(0))
+        self.energies = []
+
+        for i in range(self.n_hidden + 2):
+            x = self.convs[i](x, edge_index)
+            x = self.activation(x)
+            energy = dirichlet_energy(x, _L)
+            self.energies.append(energy)
+
+        return F.log_softmax(x, dim=1), x

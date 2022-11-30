@@ -84,4 +84,8 @@ def plot_influences(
         )
         ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
 
+    plt.suptitle(
+        f"{_model.model_name}-{_model.n_hidden} Hidden - Influences",
+        fontsize=14,
+    )
     plt.show()

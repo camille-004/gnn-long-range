@@ -2,11 +2,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 import torch
 import yaml
 from torch import Tensor
 from torch_geometric.data import Data
+from torch_geometric.utils import get_laplacian
 from torch_geometric.utils.convert import to_networkx
 
 from src.models.graph_classification.base import BaseGraphClassifier
@@ -35,7 +37,18 @@ def load_config(config_name: str) -> Dict[str, Any]:
     return config
 
 
-def dirichlet_energy(x: Tensor, laplacian: Tensor) -> float:
+def get_graph_laplacian(
+    edge_index: Tensor, num_nodes: int, normalization: str = "sym"
+) -> torch.sparse.FloatTensor:
+    edge_index, edge_weight = get_laplacian(
+        edge_index, normalization=normalization
+    )
+    return torch.sparse.FloatTensor(
+        edge_index, edge_weight, torch.Size([num_nodes, num_nodes])
+    )
+
+
+def dirichlet_energy(x: Tensor, laplacian: Tensor) -> np.ndarray:
     """
     Calculate the Dirichlet energy at a NN layer.
 
@@ -48,10 +61,15 @@ def dirichlet_energy(x: Tensor, laplacian: Tensor) -> float:
 
     Returns
     -------
-    float
+    np.ndarray
         Dirichlet energy value.
     """
-    return torch.trace(torch.matmul(torch.matmul(x.t(), laplacian), x)).item()
+    _L = np.array(laplacian.cpu().to_dense())
+    assert x.shape[0] == _L.shape[0] == _L.shape[1]
+    x = x.clone().detach().cpu()  # Don't calculate gradient
+    _E = np.dot(np.dot(x.T, _L), x)
+    _E = np.diag(_E)
+    return np.sum(_E)
 
 
 def k_hop_nb(data: Data, node: int, r: int) -> List[int]:

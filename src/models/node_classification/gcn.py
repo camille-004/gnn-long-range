@@ -1,15 +1,12 @@
 from typing import Any, Tuple
 
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import ReLU
 from torch_geometric.nn import GCNConv
-from torch_geometric.nn.conv.gcn_conv import gcn_norm
-from torch_geometric.utils import to_dense_adj
 
-from src.utils import dirichlet_energy, load_config
+from src.utils import dirichlet_energy, get_graph_laplacian, load_config
 
 from .base import BaseNodeClassifier
 
@@ -74,38 +71,26 @@ class NodeLevelGCN(BaseNodeClassifier):
 
     def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """Node GCN forward pass."""
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.energies = []
 
-        edge_weight = None
-        edge_index, edge_weight = gcn_norm(
-            edge_index, edge_weight, x.size(0), False, dtype=x.dtype
-        )
-        adj_weight = to_dense_adj(edge_index, edge_attr=edge_weight)
-        num_nodes = x.size(0)
-        adj_weight = torch.squeeze(adj_weight, dim=0)
-        laplacian_weight = (
-            torch.eye(num_nodes, dtype=torch.float, device=device) - adj_weight
-        )
-
+        _L = get_graph_laplacian(edge_index, x.size(0))
         h = self.conv_in(x, edge_index)
+        h = self.activation(h)
 
         # Calculate energy of input layer
-        self.energies.append(dirichlet_energy(h, laplacian_weight))
-        h = self.activation(h)
+        self.energies.append(dirichlet_energy(h, _L))
 
         for i in range(self.n_hidden):
             h = self.hidden[i](h, edge_index)
-
-            # Calculate energy of hidden layers
-            self.energies.append(dirichlet_energy(h, laplacian_weight))
             h = F.dropout(h, p=self.dropout, training=self.training)
 
+            # Calculate energy of hidden layers
+            self.energies.append(dirichlet_energy(h, _L))
+
         h = self.conv_out(h, edge_index)
+        h = self.activation(h)
 
         # Calculate energy of output layer
-        self.energies.append(dirichlet_energy(h, laplacian_weight))
-
-        h = self.activation(h)
+        self.energies.append(dirichlet_energy(h, _L))
 
         return F.log_softmax(h, dim=1), h
