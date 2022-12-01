@@ -29,7 +29,11 @@ from src.models.node_classification.gat import NodeLevelGAT
 from src.models.node_classification.gcn import NodeLevelGCN
 from src.models.node_classification.gin import NodeLevelGIN
 from src.utils import load_config
-from src.visualize import plot_dirichlet_energies, plot_influences
+from src.visualize import (
+    plot_dirichlet_energies,
+    plot_influences,
+    plot_rayleigh_quotients,
+)
 
 data_config = load_config("data_config.yaml")
 training_config = load_config("training_config.yaml")
@@ -99,6 +103,7 @@ def get_activation(activation: str = "relu") -> nn.Module:
             f"Non-differentiable function: {activation}. Might not be able to "
             f"get accurate influences."
         )
+
     activation_map = {"relu": nn.ReLU(), "elu": nn.ELU(), "tanh": nn.Tanh()}
 
     assert activation in activation_map.keys(), "Unknown activation function."
@@ -175,6 +180,7 @@ def train_module(
     ],
     max_epochs: int = training_config["max_epochs_default"],
     plot_energies: bool = False,
+    plot_rayleigh: bool = False,
     plot_influence: bool = False,
 ) -> Dict[str, Dict[str, float]]:
     """
@@ -196,6 +202,8 @@ def train_module(
         Maximum number of epochs for training.
     plot_energies : bool
         Whether to plot Dirichlet energy after training.
+    plot_rayleigh : bool
+        Whether to plot Rayleigh quotients after training.
     plot_influence : bool
         Whether to plot the influence of k-hop neighbors on a node x.
     Returns
@@ -210,6 +218,7 @@ def train_module(
     print(f"Number of classes: {_num_classes}\n")
 
     print("========\nTRAINING\n========\n")
+    print(_model)
 
     project_name = f"{_data_module.dataset_name}_{_model.model_name}"
     wandb_logger = WandbLogger(project=project_name, log_model="all")
@@ -241,10 +250,17 @@ def train_module(
     val_data = next(iter(_data_module.val_dataloader()))
 
     if plot_energies:
+        print("Plotting energies...")
         model_dirichlet_energies = _model.get_energies()
         plot_dirichlet_energies(_data_module, _model, model_dirichlet_energies)
 
+    if plot_rayleigh:
+        print("Plotting Rayleigh quotients...")
+        model_rayleigh_quotients = _model.get_rayleigh()
+        plot_rayleigh_quotients(_data_module, _model, model_rayleigh_quotients)
+
     if plot_influence:
+        print("Plotting influences...")
         plot_influences(_model, _data_module, val_data)
 
     val_results = trainer.validate(_model, datamodule=_data_module)
@@ -270,6 +286,7 @@ def train_module(
             type(_model.activation).__name__,
             "none",
         ]
+
         if hasattr(_model, "num_heads"):
             row[-1] = _model.num_heads
 

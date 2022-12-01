@@ -35,6 +35,7 @@ def plot_dirichlet_energies(
     -------
     None
     """
+    plt.figure()
     plt.plot(model_dirichlet_energies, color="black")
     plt.title(
         f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
@@ -48,6 +49,53 @@ def plot_dirichlet_energies(
         training_config["save_plots_dir"],
         f"{_data.dataset_name}_results",
         "energy",
+    )
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    img_name = f"{_model.model_name}_{_model.n_hidden}h"
+    if hasattr(_model, "num_heads"):
+        img_name += f"_{_model.num_heads}_head"
+
+    plt.savefig(
+        Path(save_dir, f"{img_name}.png"),
+        dpi=global_config["fig_dpi"],
+    )
+
+
+def plot_rayleigh_quotients(
+    _data: NodeDataModule,
+    _model: BaseNodeClassifier,
+    model_rayleigh_quotients: List[float],
+) -> None:
+    """
+    Plot the Rayleigh quotient against the layer ID of a given trained model.
+    Parameters
+    ----------
+    _data: NodeDataModule
+        Dataset used by neural network.
+    _model : BaseNodeClassifier
+        Model whose energies to plot.
+    model_rayleigh_quotients : List[float]
+        List of Rayleigh quotients gathered during training.
+
+    Returns
+    -------
+    None
+    """
+    plt.figure()
+    plt.plot(model_rayleigh_quotients, color="blue")
+    plt.title(
+        f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
+        f" - Rayleigh Quotient",
+        fontsize=14,
+    )
+    plt.xlabel("Layer ID")
+    plt.ylabel("Rayleigh Quotient")
+
+    save_dir = Path(
+        training_config["save_plots_dir"],
+        f"{_data.dataset_name}_results",
+        "rayleigh",
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -80,14 +128,13 @@ def plot_influences(
     None
     """
     n_nodes_influence = training_config["n_nodes_influence"]
-    np.random.seed(global_config["seed"] + 1)
     i, r = (
         np.random.choice(_data.x.shape[0], size=n_nodes_influence),
         10,
     )
 
     fig, ax = plt.subplots(
-        1, n_nodes_influence, figsize=(5 * n_nodes_influence, 4)
+        1, n_nodes_influence, figsize=(5 * n_nodes_influence, 4), sharex=True
     )
 
     for j, val in enumerate(i):
@@ -99,14 +146,23 @@ def plot_influences(
 
             influences.append(influence_dist)
 
+        if len(influences) == 0:
+            continue
+
         influences_df = pd.concat(influences)
-        sns.violinplot(
-            data=influences_df.reset_index(drop=True),
-            x="r",
-            y="influence",
-            color="blue",
-            ax=ax[j],
-        )
+
+        try:
+            sns.violinplot(
+                data=influences_df.reset_index(drop=True),
+                x="r",
+                y="influence",
+                color="blue",
+                ax=ax[j],
+            )
+        except ValueError:
+            print("Isolated node. Could not plot influences.")
+            return
+
         ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
 
     plt.suptitle(

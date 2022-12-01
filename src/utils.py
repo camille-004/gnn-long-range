@@ -142,3 +142,34 @@ def get_jacobian(
     influence_y_on_x = sum_of_jacobian / sum_of_jacobian.sum(dim=0)
     influence_y_on_x = influence_y_on_x.cpu().numpy()
     return pd.DataFrame(data={"influence": influence_y_on_x, "r": r})
+
+
+def rayleigh_quotient(x: Tensor, laplacian: Tensor) -> np.ndarray:
+    """
+    Calculate the Rayleigh quotient at a NN layer.
+
+    NOTE: nan in some dimensions. May not be accurate!
+
+    Parameters
+    ----------
+    x : Tensor
+        Node features.
+    laplacian : Tensor
+        Graph Laplacian
+
+    Returns
+    -------
+    np.ndarray
+        Rayleigh quotient value.
+    """
+    d = x.size(1)
+    _L = np.array(laplacian.cpu().to_dense())
+    x = x.clone().detach().cpu().numpy()  # Don't calculate gradient
+    _R = []
+
+    for i in range(d):
+        energy = np.dot(np.dot(x[:, i].T, _L), x[:, i])  # Scalar
+        norm = np.dot(x[:, i].T, x[:, i])
+        _R.append(energy / norm)
+
+    return np.nanmean(_R)

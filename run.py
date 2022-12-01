@@ -69,7 +69,12 @@ parser.add_argument(
 parser.add_argument(
     "--plot_energy",
     action="store_true",
-    help="Plot Dirichlet energy pf each layer.",
+    help="Plot Dirichlet energy of each layer.",
+)
+parser.add_argument(
+    "--plot_rayleigh",
+    action="store_true",
+    help="Plot Rayleigh quotient of each layer.",
 )
 parser.add_argument(
     "--plot_influence",
@@ -109,6 +114,7 @@ if __name__ == "__main__":
         model,
         max_epochs=args.max_epochs,
         plot_energies=args.plot_energy,
+        plot_rayleigh=args.plot_rayleigh,
         plot_influence=args.plot_influence,
     )
 

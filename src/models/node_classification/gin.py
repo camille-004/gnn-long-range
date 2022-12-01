@@ -7,7 +7,12 @@ from torch import Tensor
 from torch.nn import BatchNorm1d, Linear, ReLU, Sequential
 from torch_geometric.nn import GINConv
 
-from src.utils import dirichlet_energy, get_graph_laplacian, load_config
+from src.utils import (
+    dirichlet_energy,
+    get_graph_laplacian,
+    load_config,
+    rayleigh_quotient,
+)
 
 from .base import BaseNodeClassifier
 
@@ -102,12 +107,21 @@ class NodeLevelGIN(BaseNodeClassifier):
 
         x = self.conv_in(x, edge_index)
         energy = dirichlet_energy(x, _L)
+        rayleigh = rayleigh_quotient(x, _L)
+        x = self.activation(x)
         self.energies.append(energy)
+        self.rayleigh.append(rayleigh)
 
         for i in range(self.n_hidden):
             x = self.convs[i](x, edge_index)
-            x = self.activation(x)
             energy = dirichlet_energy(x, _L)
+            rayleigh = rayleigh_quotient(x, _L)
+            x = self.activation(x)
             self.energies.append(energy)
+            self.rayleigh.append(rayleigh)
+
+        x = self.activation(self.lin_1(x))
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.lin_2(x)
 
         return F.log_softmax(x, dim=1), x

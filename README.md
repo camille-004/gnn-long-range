@@ -51,12 +51,13 @@ Alternatively, to run your own, execute `run.py` with the following parameters:
 - `-a, --activation` - *optional*, Activation function used by neural network.
 - `-nh, --n_hidden_layers` - *optional*, Number of hidden layers to include in neural network.
 - `--n_heads` - *optional*, Number of heads for multi-head attention. GATs only!
-- `--jk_mode` - *optional*, Mode of jumping knowledge for graph classifaction gin_jk.
-- `--plot_energy` - *optional*, Plot Dirichlet energy pf each layer.
+- `--jk_mode` - *optional*, Mode of jumping knowledge for graph classification gin_jk.
+- `--plot_energy` - *optional*, Plot Dirichlet energy of each layer.
+- `--plot_rayleigh` - *optional*, Plot Rayleigh quotient of each layer.
 - `--plot_influence` - *optional*, Plot up to r-th-order neighborhood influence on a random node.
 
 You may edit any model hyperparameters, or data and training parameters in the files in the `config` directory.
 
-**Note**: If you get an empty Jacobian when getting the influence scores (resulting in a `seaborn` error), you most likely randomly chose an isolated node. For now, a simple fix would be to change the `seed` in `global_config`.
+**Note**: If you get an empty Jacobian when getting the influence scores (resulting in an empty plot), you most likely randomly chose an isolated node. For now, a simple fix would be to change the `seed` in `global_config`.
 
 ## Results

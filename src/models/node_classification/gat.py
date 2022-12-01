@@ -6,7 +6,12 @@ from torch import Tensor
 from torch.nn import ELU
 from torch_geometric.nn import GATConv
 
-from src.utils import dirichlet_energy, get_graph_laplacian, load_config
+from src.utils import (
+    dirichlet_energy,
+    get_graph_laplacian,
+    load_config,
+    rayleigh_quotient,
+)
 
 from .base import BaseNodeClassifier
 
@@ -91,11 +96,14 @@ class NodeLevelGAT(BaseNodeClassifier):
         """GAT forward pass."""
         _L = get_graph_laplacian(edge_index, x.size(0))
         self.energies = []
+        self.rayleigh = []
 
         for i in range(self.n_hidden + 2):
             x = self.convs[i](x, edge_index)
-            x = self.activation(x)
             energy = dirichlet_energy(x, _L)
+            rayleigh = rayleigh_quotient(x, _L)
+            x = self.activation(x)
             self.energies.append(energy)
+            self.rayleigh.append(rayleigh)
 
         return F.log_softmax(x, dim=1), x

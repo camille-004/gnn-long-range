@@ -7,7 +7,12 @@ from torch import Tensor
 from torch.nn import ReLU
 from torch_geometric.nn import GCNConv
 
-from src.utils import dirichlet_energy, get_graph_laplacian, load_config
+from src.utils import (
+    dirichlet_energy,
+    get_graph_laplacian,
+    load_config,
+    rayleigh_quotient,
+)
 
 from .base import BaseNodeClassifier
 
@@ -73,29 +78,36 @@ class NodeLevelGCN(BaseNodeClassifier):
 
         self.loss_fn = F.cross_entropy
         self.energies = None
+        self.rayleigh = None
 
     def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """Node GCN forward pass."""
         self.energies = []
+        self.rayleigh = []
 
         _L = get_graph_laplacian(edge_index, x.size(0))
         h = self.conv_in(x, edge_index)
-        h = self.activation(h)
 
         # Calculate energy of input layer
         self.energies.append(dirichlet_energy(h, _L))
+        self.rayleigh.append(rayleigh_quotient(h, _L))
+
+        h = self.activation(h)
 
         for i in range(self.n_hidden):
             h = self.hidden[i](h, edge_index)
-            h = F.dropout(h, p=self.dropout, training=self.training)
 
             # Calculate energy of hidden layers
             self.energies.append(dirichlet_energy(h, _L))
+            self.rayleigh.append(rayleigh_quotient(h, _L))
+
+            h = F.dropout(h, p=self.dropout, training=self.training)
 
         h = self.conv_out(h, edge_index)
         h = self.activation(h)
 
         # Calculate energy of output layer
         self.energies.append(dirichlet_energy(h, _L))
+        self.rayleigh.append(rayleigh_quotient(h, _L))
 
         return F.log_softmax(h, dim=1), h

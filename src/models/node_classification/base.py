@@ -185,3 +185,20 @@ class BaseNodeClassifier(pl.LightningModule):
             )
 
         return self.energies
+
+    def get_rayleigh(self) -> List[float]:
+        """
+        Get the list of Rayleigh quotients at each layer after training the
+        model.
+
+        Returns
+        -------
+        List[float]
+            List of Rayleigh quotients.
+        """
+        if self.rayleigh is None:
+            raise RuntimeError(
+                f"Train {self.model_name} the to get Rayleigh quotients."
+            )
+
+        return self.rayleigh
