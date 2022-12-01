@@ -58,6 +58,15 @@ Alternatively, to run your own, execute `run.py` with the following parameters:
 
 You may edit any model hyperparameters, or data and training parameters in the files in the `config` directory.
 
+For example,
+```shell
+python run.py node gin -d pubmed -nh 2 --plot_energy --plot_rayleigh --plot_influence
+```
+will produce log performance to `logs/results.csv` and save the following graphs to `reports/figures`:
+<img src="assets/imgs/node_GIN_2h_energy.png" width="200" />
+<img src="assets/imgs/node_GIN_2h_rayleigh.png" width="200" />
+<img src="assets/imgs/node_GIN_2h_influences.png" width="187" />
+
 **Note**: If you get an empty Jacobian when getting the influence scores (resulting in an empty plot), you most likely randomly chose an isolated node. For now, a simple fix would be to change the `seed` in `global_config`.
 
 ## Results
