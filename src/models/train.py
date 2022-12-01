@@ -1,4 +1,6 @@
+import csv
 import warnings
+from pathlib import Path
 from typing import Dict, Tuple, Type, Union
 
 import pytorch_lightning as pl
@@ -249,6 +251,29 @@ def train_module(
     val_results.extend(test_results)
     val_results[0].update(val_results[1])
     model_results = val_results[0]
+
+    results_path = Path(
+        global_config["logs_dir"], global_config["results_name"]
+    )
+
+    with open(results_path) as f:
+        writer = csv.writer(f)
+        row = [
+            _model.model_name,
+            _data_module.dataset_name,
+            model_results["val_loss"],
+            model_results["val_accuracy"],
+            model_results["test_loss"],
+            model_results["test_accuracy"],
+            type(_model.activation).__name__,
+            "none",
+        ]
+        if hasattr(_model, "num_heads"):
+            row[-1] = _model.num_heads
+
+        print(row)
+
+        writer.writerow(row)
 
     wandb.finish()
     return {_model.model_name: model_results}

@@ -1,3 +1,5 @@
 seed: 42
 sns_style: whitegrid
 fig_dpi: 200
+logs_dir: logs
+results_name: results.csv

@@ -49,7 +49,6 @@ def plot_dirichlet_energies(
         f"{_data.dataset_name}_results",
         "energy",
     )
-
     save_dir.mkdir(parents=True, exist_ok=True)
 
     plt.savefig(
@@ -116,7 +115,6 @@ def plot_influences(
         f"{_data_module.dataset_name}_results",
         "neighbor_influences",
     )
-
     save_dir.mkdir(parents=True, exist_ok=True)
 
     plt.savefig(
