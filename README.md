@@ -57,8 +57,9 @@ Alternatively, to run your own, execute `run.py` with the following parameters:
 - `--plot_influence` - *optional*, Plot up to r-th-order neighborhood influence on a random node.
 
 You may edit any model hyperparameters, or data and training parameters in the files in the `config` directory.
+**Note**: If you get an empty Jacobian when getting the influence scores (resulting in an empty plot), you most likely randomly chose an isolated node. For now, a simple fix would be to change the `seed` in `global_config`.
 
-For example,
+### Example
 ```shell
 python run.py node gin -d pubmed -nh 2 --plot_energy --plot_rayleigh
 ```
@@ -66,6 +67,5 @@ will produce log performance to `logs/results.csv` and save the following graphs
 <img src="assets/imgs/node_GIN_2h_energy.png" width="350" />
 <img src="assets/imgs/node_GIN_2h_rayleigh.png" width="350" />
 
-**Note**: If you get an empty Jacobian when getting the influence scores (resulting in an empty plot), you most likely randomly chose an isolated node. For now, a simple fix would be to change the `seed` in `global_config`.
-
 ## Results
+TODO
