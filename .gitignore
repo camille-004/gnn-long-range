@@ -142,6 +142,7 @@ src/imdb*/
 src/enzyme*/
 src/IMDB*/
 src/pubmed*/
+src/citeseer*/
 
 /ENZYMES*/
 /IMDB-BINARY*/
@@ -151,5 +152,8 @@ src/pubmed*/
 /enzyme*/
 /IMDB*/
 /pubmed*/
+/citeseer*/
 
 !/reports/figures
+
+/data/

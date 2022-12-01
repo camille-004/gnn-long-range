@@ -38,7 +38,7 @@ def plot_dirichlet_energies(
     plt.plot(model_dirichlet_energies, color="black")
     plt.title(
         f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
-        f"- Dirichlet Energy",
+        f" - Dirichlet Energy",
         fontsize=14,
     )
     plt.xlabel("Layer ID")
@@ -80,6 +80,7 @@ def plot_influences(
     None
     """
     n_nodes_influence = training_config["n_nodes_influence"]
+    np.random.seed(global_config["seed"] + 1)
     i, r = (
         np.random.choice(_data.x.shape[0], size=n_nodes_influence),
         10,
@@ -99,7 +100,6 @@ def plot_influences(
             influences.append(influence_dist)
 
         influences_df = pd.concat(influences)
-
         sns.violinplot(
             data=influences_df.reset_index(drop=True),
             x="r",

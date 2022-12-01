@@ -1,1 +1,4 @@
 model, dataset, num_hidden, val_loss, val_acc, test_loss, test_acc, activation, num_heads
+node_GCN,citeseer,1,1.7878,0.212,1.7884,0.225,ReLU,none
+node_GCN,citeseer,1,1.7878,0.212,1.7884,0.225,ReLU,none
+node_GCN,citeseer,5,1.7968,0.06,1.7942,0.081,ReLU,none

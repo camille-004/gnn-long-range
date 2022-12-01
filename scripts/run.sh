@@ -1,7 +1,7 @@
 rm -r reports/figures/*
 truncate -s 0 logs/results.csv
 echo "model, dataset, num_hidden, val_loss, val_acc, test_loss, test_acc, activation, num_heads" > logs/results.csv
-for DATASET in pubmed cora citeseer
+for DATASET in citeseer pubmet cora
 do
   for MODEL in gcn gat gin
     do

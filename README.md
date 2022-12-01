@@ -57,4 +57,6 @@ Alternatively, to run your own, execute `run.py` with the following parameters:
 
 You may edit any model hyperparameters, or data and training parameters in the files in the `config` directory.
 
+**Note**: If you get an empty Jacobian when getting the influence scores (resulting in a `seaborn` error), you most likely randomly chose an isolated node. For now, a simple fix would be to change the `seed` in `global_config`.
+
 ## Results
