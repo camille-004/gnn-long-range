@@ -1,4 +1,5 @@
 import argparse
+import sys
 from pathlib import Path
 
 import wandb
@@ -32,6 +33,12 @@ if __name__ == "__main__":
 
     task = args.classification_task
 
+    if task == "graph" and any([args.plot_energy, args.plot_influence]):
+        parser.error(
+            "Plotting Dirichlet energy and neighborhood influence not"
+            "supported for graph classification."
+        )
+
     if task == "graph":
         dataset = test_datasets[0]
     else:
@@ -62,3 +69,4 @@ if __name__ == "__main__":
         plot_influence=args.plot_influence,
     )
     print(results)
+    sys.exit()

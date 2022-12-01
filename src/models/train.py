@@ -235,19 +235,20 @@ def train_module(
     )
 
     trainer.fit(model=_model, datamodule=_data_module)
-    wandb.finish()
     val_data = next(iter(_data_module.val_dataloader()))
 
     if plot_energies:
         model_dirichlet_energies = _model.get_energies()
-        plot_dirichlet_energies(_model, model_dirichlet_energies)
+        plot_dirichlet_energies(_data_module, _model, model_dirichlet_energies)
 
     if plot_influence:
-        plot_influences(_model, val_data)
+        plot_influences(_model, _data_module, val_data)
 
     val_results = trainer.validate(_model, datamodule=_data_module)
     test_results = trainer.test(_model, datamodule=_data_module)
     val_results.extend(test_results)
     val_results[0].update(val_results[1])
     model_results = val_results[0]
+
+    wandb.finish()
     return {_model.model_name: model_results}

@@ -22,7 +22,7 @@ class NodeDataModule(pl.LightningDataModule):
         super().__init__()
         self.dataset = None
 
-        self.dataset_name = (
+        self._dataset_name = (
             kwargs["dataset_name"]
             if "dataset_name" in kwargs.keys()
             else node_data_config["node_data_name_default"]
@@ -66,6 +66,17 @@ class NodeDataModule(pl.LightningDataModule):
             name=self.dataset_name,
             transform=T.Compose(self.transform),
         )
+
+    @property
+    def dataset_name(self) -> str:
+        """
+        Return the dataset name.
+        Returns
+        -------
+        str
+            Dataset name.
+        """
+        return self._dataset_name
 
     @property
     def num_features(self) -> int:
@@ -142,7 +153,7 @@ class GraphDataModule(pl.LightningDataModule):
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
-        self.dataset_name = (
+        self._dataset_name = (
             kwargs["dataset_name"]
             if "dataset_name" in kwargs.keys()
             else graph_data_config["graph_data_name_default"]
@@ -207,6 +218,17 @@ class GraphDataModule(pl.LightningDataModule):
         self.train_dataset = dataset[2 * num_val :]
         self.val_dataset = dataset[:num_val]
         self.test_dataset = dataset[num_val : 2 * num_val]
+
+    @property
+    def dataset_name(self) -> str:
+        """
+        Return the dataset name.
+        Returns
+        -------
+        str
+            Dataset name.
+        """
+        return self._dataset_name
 
     @property
     def num_features(self) -> int:

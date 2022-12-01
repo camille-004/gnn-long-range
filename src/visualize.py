@@ -1,4 +1,5 @@
-from typing import List, Union
+from pathlib import Path
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,22 +7,26 @@ import pandas as pd
 import seaborn as sns
 from torch_geometric.data import Data
 
-from src.models.graph_classification.base import BaseGraphClassifier
+from src.data_modules import NodeDataModule
 from src.models.node_classification.base import BaseNodeClassifier
 from src.utils import get_jacobian, load_config
 
+global_config = load_config("global_config.yaml")
 training_config = load_config("training_config.yaml")
 
 
 def plot_dirichlet_energies(
-    _model: Union[BaseGraphClassifier, BaseNodeClassifier],
+    _data: NodeDataModule,
+    _model: BaseNodeClassifier,
     model_dirichlet_energies: List[float],
 ) -> None:
     """
     Plot the Dirichlet energy against the layer ID of a given trained model.
     Parameters
     ----------
-    _model : Union[BaseGraphClassifier, BaseNodeClassifier]
+    _data: NodeDataModule
+        Dataset used by neural network.
+    _model : BaseNodeClassifier
         Model whose energies to plot.
     model_dirichlet_energies : List[float]
         List of Dirichlet energies gathered during training.
@@ -32,23 +37,38 @@ def plot_dirichlet_energies(
     """
     plt.plot(model_dirichlet_energies, color="black")
     plt.title(
-        f"{_model.model_name}-{_model.n_hidden} Hidden - Dirichlet Energy",
+        f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
+        f"- Dirichlet Energy",
         fontsize=14,
     )
     plt.xlabel("Layer ID")
     plt.ylabel("Dirichlet Energy")
-    plt.show()
+
+    save_dir = Path(
+        training_config["save_plots_dir"],
+        f"{_data.dataset_name}_results",
+        "energy",
+    )
+
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    plt.savefig(
+        Path(save_dir, f"{_model.model_name}_{_model.n_hidden}h.png"),
+        dpi=global_config["fig_dpi"],
+    )
 
 
 def plot_influences(
-    _model: Union[BaseGraphClassifier, BaseNodeClassifier], _data: Data
+    _model: BaseNodeClassifier, _data_module: NodeDataModule, _data: Data
 ) -> None:
     """
     Plot the influence of k-hop neighbors on a node after training the model.
     Parameters
     ----------
-    _model : Union[BaseGraphClassifier, BaseNodeClassifier]
+    _model : BaseNodeClassifier
         Trained model.
+    _data_module: NodeDataModule
+        Data module of dataset used by neural network.
     _data : Data
         Dataset containing node and neighbors to plot.
 
@@ -67,16 +87,18 @@ def plot_influences(
     )
 
     for j, val in enumerate(i):
-        influences = pd.DataFrame()
+        influences = []
         for k in range(1, r + 1):
             influence_dist = get_jacobian(_model, _data, val, k)
             if influence_dist["influence"].isnull().values.any():
                 continue
 
-            influences = influences.append(influence_dist)
+            influences.append(influence_dist)
+
+        influences_df = pd.concat(influences)
 
         sns.violinplot(
-            data=influences.reset_index(drop=True),
+            data=influences_df.reset_index(drop=True),
             x="r",
             y="influence",
             color="black",
@@ -88,4 +110,16 @@ def plot_influences(
         f"{_model.model_name}-{_model.n_hidden} Hidden - Influences",
         fontsize=14,
     )
-    plt.show()
+
+    save_dir = Path(
+        training_config["save_plots_dir"],
+        f"{_data_module.dataset_name}_results",
+        "neighbor_influences",
+    )
+
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    plt.savefig(
+        Path(save_dir, f"{_model.model_name}_{_model.n_hidden}h.png"),
+        dpi=global_config["fig_dpi"],
+    )

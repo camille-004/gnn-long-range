@@ -134,11 +134,22 @@ dmypy.json
 # Wandb, data
 **/wandb*/
 
-**/ENZYMES*/
-**/IMDB-BINARY*/
-**/PROTEINS*/
-**/cora*/
-**/imdb*/
-**/enzyme*/
-**/IMDB*/
-**/pubmed*/
+src/ENZYMES*/
+src/IMDB-BINARY*/
+src/PROTEINS*/
+src/cora*/
+src/imdb*/
+src/enzyme*/
+src/IMDB*/
+src/pubmed*/
+
+/ENZYMES*/
+/IMDB-BINARY*/
+/PROTEINS*/
+/cora*/
+/imdb*/
+/enzyme*/
+/IMDB*/
+/pubmed*/
+
+!/reports/figures
