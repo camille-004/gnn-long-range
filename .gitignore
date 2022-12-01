@@ -154,4 +154,6 @@ src/citeseer*/
 /pubmed*/
 /citeseer*/
 
+/data/
+
 !/reports/figures
