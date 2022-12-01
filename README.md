@@ -63,7 +63,7 @@ You may edit any model hyperparameters, or data and training parameters in the f
 ```shell
 python run.py node gin -d pubmed -nh 2 --plot_energy --plot_rayleigh
 ```
-will produce log performance to `logs/results.csv` and save the following graphs to `reports/figures`:
+will log performance to `logs/results.csv` and save the following graphs to `reports/figures`:
 <img src="assets/imgs/node_GIN_2h_energy.png" width="350" />
 <img src="assets/imgs/node_GIN_2h_rayleigh.png" width="350" />
 
