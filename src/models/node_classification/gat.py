@@ -91,6 +91,7 @@ class NodeLevelGAT(BaseNodeClassifier):
 
         self.loss_fn = F.cross_entropy
         self.energies = None
+        self.rayleigh = None
 
     def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """GAT forward pass."""

@@ -4,4 +4,4 @@ max_epochs_default: 2500
 save_plots_dir: "reports/figures"
 
 # Number of nodes whose influence distribution to plot after training GNN
-n_nodes_influence: 3
+n_nodes_influence: 1

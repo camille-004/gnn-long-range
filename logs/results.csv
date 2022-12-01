@@ -1,9 +1,3 @@
 model, dataset, num_hidden, val_loss, val_acc, test_loss, test_acc, activation, num_heads
-node_GIN,pubmed,1,1.1122,0.196,1.1136,0.186,ReLU,none
-node_GIN,pubmed,2,1.0532,0.46,1.0562,0.449,ReLU,none
-node_GIN,pubmed,5,1.0699,0.428,1.078,0.403,ReLU,none
-node_GCN,cora,1,1.8833,0.4,1.8809,0.427,ReLU,none
-node_GCN,cora,1,1.9334,0.322,1.9332,0.338,ReLU,none
-node_GCN,cora,1,1.8833,0.4,1.8809,0.427,ReLU,none
-node_GCN,cora,1,1.8833,0.4,1.8809,0.427,ReLU,none
-node_GCN,cora,10,1.6089,0.206,1.6547,0.186,ReLU,none
+node_GIN,pubmed,1,1.1122,0.196,1.1145,0.18,ReLU,none
+node_GIN,pubmed,2,1.0694,0.428,1.0679,0.412,ReLU,none

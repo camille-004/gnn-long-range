@@ -99,11 +99,14 @@ class NodeLevelGIN(BaseNodeClassifier):
         self.lin_2 = Linear(self.hidden_channels, self.num_classes)
 
         self.loss_fn = F.cross_entropy
+        self.energies = None
+        self.rayleigh = None
 
     def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """GIN forward pass."""
         _L = get_graph_laplacian(edge_index, x.size(0))
         self.energies = []
+        self.rayleigh = []
 
         x = self.conv_in(x, edge_index)
         energy = dirichlet_energy(x, _L)

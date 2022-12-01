@@ -137,17 +137,44 @@ def plot_influences(
         1, n_nodes_influence, figsize=(5 * n_nodes_influence, 4), sharex=True
     )
 
-    for j, val in enumerate(i):
-        influences = []
-        for k in range(1, r + 1):
-            influence_dist = get_jacobian(_model, _data, val, k)
-            if influence_dist["influence"].isnull().values.any():
+    if n_nodes_influence > 1:
+        for j, val in enumerate(i):
+            influences = []
+            for k in range(1, r + 1):
+                influence_dist = get_jacobian(_model, _data, val, k)
+                if influence_dist["influence"].isnull().values.any():
+                    continue
+
+                influences.append(influence_dist)
+
+            if len(influences) == 0:
                 continue
 
-            influences.append(influence_dist)
+            influences_df = pd.concat(influences)
 
-        if len(influences) == 0:
-            continue
+            try:
+                sns.violinplot(
+                    data=influences_df.reset_index(drop=True),
+                    x="r",
+                    y="influence",
+                    color="blue",
+                    ax=ax[j],
+                )
+            except ValueError:
+                print("Isolated node. Could not plot influences.")
+                return
+
+            ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
+
+        plt.suptitle(
+            f"{_model.model_name}-{_model.n_hidden} Hidden - Influences",
+            fontsize=14,
+        )
+    else:
+        influences = []
+        for k in range(1, r + 1):
+            influence = get_jacobian(_model, _data, i[0], k)
+            influences.append(influence)
 
         influences_df = pd.concat(influences)
 
@@ -157,18 +184,16 @@ def plot_influences(
                 x="r",
                 y="influence",
                 color="blue",
-                ax=ax[j],
             )
         except ValueError:
             print("Isolated node. Could not plot influences.")
             return
 
-        ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
-
-    plt.suptitle(
-        f"{_model.model_name}-{_model.n_hidden} Hidden - Influences",
-        fontsize=14,
-    )
+        plt.title(
+            f"{_model.model_name}-{_model.n_hidden}\nJacobian at r = {r}, "
+            f"Node = {i}",
+            fontsize=10,
+        )
 
     save_dir = Path(
         training_config["save_plots_dir"],
