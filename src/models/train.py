@@ -93,8 +93,8 @@ def get_activation(activation: str = "relu") -> nn.Module:
     """
     if activation == "relu":
         warnings.warn(
-            f"Non-differentiable function: {activation}. Will not be able to "
-            f"plot influences."
+            f"Non-differentiable function: {activation}. Might not be able to "
+            f"get accurate influences."
         )
     activation_map = {"relu": nn.ReLU(), "elu": nn.ELU(), "tanh": nn.Tanh()}
 

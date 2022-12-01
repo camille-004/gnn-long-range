@@ -1,9 +1,13 @@
+import warnings
+from typing import Any, Tuple
+
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import BatchNorm1d, Dropout, Linear, LogSoftmax, ReLU
-from torch_geometric.nn import GINConv, Sequential
+from torch import Tensor
+from torch.nn import BatchNorm1d, Linear, ReLU, Sequential
+from torch_geometric.nn import GINConv
 
-from src.utils import load_config
+from src.utils import dirichlet_energy, get_graph_laplacian, load_config
 
 from .base import BaseNodeClassifier
 
@@ -19,8 +23,12 @@ class NodeLevelGIN(BaseNodeClassifier):
     ) -> None:
         super().__init__(n_hidden, activation)
 
-        if self.activation is None:
+        if activation is None:
             self.activation = ReLU()
+            warnings.warn(
+                "Using ReLU activation function. Non-differentiable"
+                "activation may yield inaccurate influences."
+            )
 
         self._model_name = "node_GIN"
 
@@ -53,61 +61,53 @@ class NodeLevelGIN(BaseNodeClassifier):
             else gin_config["weight_decay"]
         )
 
-        hidden = []
+        self.energies = None
 
-        for i in range(1, self.n_hidden + 1):
-            hidden.append((Dropout(p=self.dropout), f"x{i}b -> x{i}d"))
-            hidden.append(
-                (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.hidden_channels, self.hidden_channels),
-                            self.activation,
-                            Linear(self.hidden_channels, self.hidden_channels),
-                        )
-                    ),
-                    f"x{i}d, edge_index -> x{i + 1}",
-                )
-            )
-            hidden.append((self.activation, f"x{i + 1} -> x{i + 1}a"))
-            hidden.append(
-                (BatchNorm1d(self.hidden_channels), f"x{i + 1}a -> x{i + 1}b")
-            )
-
-        self.model = Sequential(
-            "x, edge_index",
-            [
-                (Dropout(p=self.dropout), "x -> xd"),
-                (
-                    GINConv(
-                        nn.Sequential(
-                            Linear(self.num_features, self.hidden_channels),
-                            self.activation,
-                            Linear(self.hidden_channels, self.hidden_channels),
-                        )
-                    ),
-                    "xd, edge_index -> x1",
-                ),
-                (self.activation, "x1 -> x1a"),
-                (BatchNorm1d(self.hidden_channels), "x1a -> x1b"),
-                *hidden,
-                (
-                    Linear(self.hidden_channels, self.hidden_channels),
-                    f"x{n_hidden + 1} -> x{n_hidden + 2}",
-                ),
-                (self.activation, f"x{n_hidden + 2} -> x{n_hidden + 2}a"),
-                (
-                    Dropout(p=self.dropout),
-                    f"x{n_hidden + 2}a -> x{n_hidden + 2}d",
-                ),
-                (
-                    Linear(self.hidden_channels, self.num_classes),
-                    f"x{n_hidden + 2}d -> x{n_hidden + 3}",
-                ),
-                (LogSoftmax(), f"x{n_hidden + 3} -> x_out"),
-            ],
+        self.conv_in = GINConv(
+            Sequential(
+                Linear(self.num_features, self.hidden_channels),
+                self.activation,
+                Linear(self.hidden_channels, self.hidden_channels),
+                self.activation,
+                BatchNorm1d(self.hidden_channels),
+            ),
+            train_eps=True,
         )
 
-        print(self.model)
+        self.convs = nn.ModuleList()
+
+        for _ in range(n_hidden):
+            self.convs.append(
+                GINConv(
+                    Sequential(
+                        Linear(self.hidden_channels, self.hidden_channels),
+                        self.activation,
+                        Linear(self.hidden_channels, self.hidden_channels),
+                        self.activation,
+                        BatchNorm1d(self.hidden_channels),
+                    ),
+                    train_eps=True,
+                )
+            )
+
+        self.lin_1 = Linear(self.hidden_channels, self.hidden_channels)
+        self.lin_2 = Linear(self.hidden_channels, self.num_classes)
 
         self.loss_fn = F.cross_entropy
+
+    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
+        """GIN forward pass."""
+        _L = get_graph_laplacian(edge_index, x.size(0))
+        self.energies = []
+
+        x = self.conv_in(x, edge_index)
+        energy = dirichlet_energy(x, _L)
+        self.energies.append(energy)
+
+        for i in range(self.n_hidden):
+            x = self.convs[i](x, edge_index)
+            x = self.activation(x)
+            energy = dirichlet_energy(x, _L)
+            self.energies.append(energy)
+
+        return F.log_softmax(x, dim=1), x

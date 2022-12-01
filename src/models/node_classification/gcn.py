@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Tuple
 
 import torch.nn as nn
@@ -24,6 +25,10 @@ class NodeLevelGCN(BaseNodeClassifier):
 
         if activation is None:
             self.activation = ReLU()
+            warnings.warn(
+                "Using ReLU activation function. Non-differentiable"
+                "activation may yield inaccurate influences."
+            )
 
         self._model_name = "node_GCN"
 
