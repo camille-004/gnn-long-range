@@ -126,7 +126,7 @@ def get_jacobian(
         _data.x.requires_grad = True
 
     neighbor_nodes_idx = k_hop_nb(_data, node, r)
-    print(f"Number of {r}-hop neighbors: {len(neighbor_nodes_idx)}")
+    # print(f"Number of {r}-hop neighbors: {len(neighbor_nodes_idx)}")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     _data = _data.to(device)
     _model = _model.to(device)

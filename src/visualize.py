@@ -51,8 +51,12 @@ def plot_dirichlet_energies(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    img_name = f"{_model.model_name}_{_model.n_hidden}h"
+    if hasattr(_model, "num_heads"):
+        img_name += f"_{_model.num_heads}_head"
+
     plt.savefig(
-        Path(save_dir, f"{_model.model_name}_{_model.n_hidden}h.png"),
+        Path(save_dir, f"{img_name}.png"),
         dpi=global_config["fig_dpi"],
     )
 
@@ -100,7 +104,7 @@ def plot_influences(
             data=influences_df.reset_index(drop=True),
             x="r",
             y="influence",
-            color="black",
+            color="blue",
             ax=ax[j],
         )
         ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
@@ -117,7 +121,11 @@ def plot_influences(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    img_name = f"{_model.model_name}_{_model.n_hidden}h"
+    if hasattr(_model, "num_heads"):
+        img_name += f"_{_model.num_heads}_head"
+
     plt.savefig(
-        Path(save_dir, f"{_model.model_name}_{_model.n_hidden}h.png"),
+        Path(save_dir, f"{img_name}.png"),
         dpi=global_config["fig_dpi"],
     )

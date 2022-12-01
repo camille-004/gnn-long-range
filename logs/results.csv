@@ -1,1 +1,1 @@
-model, dataset,relu num_hidden, val_loss, val_acc, test_loss, test_acc, activation, num_heads
+model, dataset, num_hidden, val_loss, val_acc, test_loss, test_acc, activation, num_heads

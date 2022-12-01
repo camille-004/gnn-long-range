@@ -3,6 +3,7 @@ import warnings
 from pathlib import Path
 from typing import Dict, Tuple, Type, Union
 
+import numpy as np
 import pytorch_lightning as pl
 import seaborn as sns
 import torch
@@ -256,22 +257,21 @@ def train_module(
         global_config["logs_dir"], global_config["results_name"]
     )
 
-    with open(results_path) as f:
+    with open(results_path, "a") as f:
         writer = csv.writer(f)
         row = [
             _model.model_name,
             _data_module.dataset_name,
-            model_results["val_loss"],
-            model_results["val_accuracy"],
-            model_results["test_loss"],
-            model_results["test_accuracy"],
+            _model.n_hidden,
+            np.round(model_results["val_loss"], 4),
+            np.round(model_results["val_accuracy"], 4),
+            np.round(model_results["test_loss"], 4),
+            np.round(model_results["test_accuracy"], 4),
             type(_model.activation).__name__,
             "none",
         ]
         if hasattr(_model, "num_heads"):
             row[-1] = _model.num_heads
-
-        print(row)
 
         writer.writerow(row)
 
