@@ -1,4 +1,3 @@
-data_dir: "../../data/"
 batch_size_default: 32
 num_cpus_default: 16
 norm_features_default: true
@@ -9,7 +8,6 @@ test_datasets:
     - cora
     - citeseer
     - pubmed
-test_dir: "data/test/testdata"
 graph:
     graph_data_name_default: IMDB-BINARY
     imdb_features: 135
