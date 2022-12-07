@@ -17,7 +17,6 @@ This project contains customizable baseline SoTA message passing graph neural ne
     └── models
         ├── train.py  # Training script, based on PyTorch Lightning's `Trainer`.
         └── utils.py  # Utility functions for computing oversmoothing and oversquashing metrics.
-
     ├── data_module.py  # Definitions of graph and node `LightningDataModule`s.
     ├── utils.py  # Utility function for loading a configuration.
     └── visualize.py  # Model graphs to save to reports/figures.
