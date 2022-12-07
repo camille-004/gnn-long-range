@@ -7,12 +7,9 @@ from torch import Tensor
 from torch.nn import ReLU
 from torch_geometric.nn import GCNConv
 
-from src.utils import (
-    dirichlet_energy,
-    get_graph_laplacian,
-    load_config,
-    rayleigh_quotient,
-)
+from src.models.utils import (dirichlet_energy, get_graph_laplacian,
+                              rayleigh_quotient)
+from src.utils import load_config
 
 from .base import BaseNodeClassifier
 
@@ -104,10 +101,10 @@ class NodeLevelGCN(BaseNodeClassifier):
             h = F.dropout(h, p=self.dropout, training=self.training)
 
         h = self.conv_out(h, edge_index)
-        h = self.activation(h)
 
         # Calculate energy of output layer
         self.energies.append(dirichlet_energy(h, _L))
         self.rayleigh.append(rayleigh_quotient(h, _L))
 
+        h = self.activation(h)
         return F.log_softmax(h, dim=1), h

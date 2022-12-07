@@ -7,12 +7,9 @@ from torch import Tensor
 from torch.nn import BatchNorm1d, Linear, ReLU, Sequential
 from torch_geometric.nn import GINConv
 
-from src.utils import (
-    dirichlet_energy,
-    get_graph_laplacian,
-    load_config,
-    rayleigh_quotient,
-)
+from src.models.utils import (dirichlet_energy, get_graph_laplacian,
+                              rayleigh_quotient)
+from src.utils import load_config
 
 from .base import BaseNodeClassifier
 

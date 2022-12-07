@@ -7,9 +7,10 @@ import pandas as pd
 import seaborn as sns
 from torch_geometric.data import Data
 
-from src.data_modules import NodeDataModule
+from src.data.data_modules import NodeDataModule
 from src.models.node_classification.base import BaseNodeClassifier
-from src.utils import get_jacobian, load_config
+from src.models.utils import get_jacobian
+from src.utils import load_config
 
 global_config = load_config("global_config.yaml")
 training_config = load_config("training_config.yaml")
@@ -35,15 +36,17 @@ def plot_dirichlet_energies(
     -------
     None
     """
+    augmentation_thres = _data.add_edges_thres
     plt.figure()
     plt.plot(model_dirichlet_energies, color="black")
-    plt.title(
+    plt.suptitle(
         f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
-        f" - Dirichlet Energy",
-        fontsize=14,
+        f" - log(Dirichlet Energy)",
+        fontsize=10,
     )
+    plt.title(f"add_edges_thres = {augmentation_thres}", fontsize=10)
     plt.xlabel("Layer ID")
-    plt.ylabel("Dirichlet Energy")
+    plt.ylabel("log(Dirichlet Energy)")
 
     save_dir = Path(
         training_config["save_plots_dir"],
@@ -52,7 +55,7 @@ def plot_dirichlet_energies(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    img_name = f"{_model.model_name}_{_model.n_hidden}h"
+    img_name = f"{_model.model_name}_{_model.n_hidden}h_{augmentation_thres}"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
 
@@ -82,13 +85,15 @@ def plot_rayleigh_quotients(
     -------
     None
     """
+    augmentation_thres = _data.add_edges_thres
     plt.figure()
     plt.plot(model_rayleigh_quotients, color="blue")
-    plt.title(
+    plt.suptitle(
         f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
         f" - Rayleigh Quotient",
-        fontsize=14,
+        fontsize=10,
     )
+    plt.title(f"add_edges_thres = {augmentation_thres}", fontsize=10)
     plt.xlabel("Layer ID")
     plt.ylabel("Rayleigh Quotient")
 
@@ -99,7 +104,7 @@ def plot_rayleigh_quotients(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    img_name = f"{_model.model_name}_{_model.n_hidden}h"
+    img_name = f"{_model.model_name}_{_model.n_hidden}h_{augmentation_thres}"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
 
@@ -127,6 +132,8 @@ def plot_influences(
     -------
     None
     """
+    augmentation_thres = _data_module.add_edges_thres
+
     n_nodes_influence = training_config["n_nodes_influence"]
     i, r = (
         np.random.choice(_data.x.shape[0], size=n_nodes_influence),
@@ -167,9 +174,11 @@ def plot_influences(
             ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
 
         plt.suptitle(
-            f"{_model.model_name}-{_model.n_hidden} Hidden - Influences",
-            fontsize=14,
+            f"{_model.model_name}-{_model.n_hidden} Hidden - Influences \n"
+            f"add_edges_thres = {augmentation_thres}",
+            fontsize=10,
         )
+        plt.title(f"add_edges_thres = {augmentation_thres}", fontsize=10)
     else:
         influences = []
         for k in range(1, r + 1):
@@ -191,7 +200,7 @@ def plot_influences(
 
         plt.title(
             f"{_model.model_name}-{_model.n_hidden}\nJacobian at r = {r}, "
-            f"Node = {i}",
+            f"Node = {i}, add_edges_thres = {augmentation_thres}",
             fontsize=10,
         )
 

@@ -55,6 +55,14 @@ parser.add_argument(
     help="Number of hidden layers to include in neural network.",
 )
 parser.add_argument(
+    "-t",
+    "--add_edges_thres",
+    default=0.0,
+    type=float,
+    help="Threshold, as a percentage of original edge cardinality, "
+    "for amount of new random edges to add",
+)
+parser.add_argument(
     "--n_heads",
     default=1,
     type=int,
@@ -64,7 +72,7 @@ parser.add_argument(
     "--jk_mode",
     default="none",
     type=str,
-    help="Mode of jumping knowledge for graph classifaction gin_jk.",
+    help="Mode of jumping knowledge for graph classification gin_jk.",
 )
 parser.add_argument(
     "--plot_energy",
@@ -103,6 +111,7 @@ if __name__ == "__main__":
         task,
         args.model,
         args.n_hidden_layers,
+        args.add_edges_thres,
         args.activation,
         dataset_name=args.dataset,
         num_heads=args.n_heads,

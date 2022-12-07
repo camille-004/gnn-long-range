@@ -41,8 +41,7 @@ pip install -r requirements_gpu.txt  # For GPU environment
 
 ## Usage
 
-To run the experiments from the report, simply execute `scripts/run.sh`. The script starts by emptying `logs/results.csv` and `reports/figures`, in which oversmoothing and oversquashing plots will be stored.
-
+To run the experiments from the report, simply execute `scripts/run.sh`. The script starts by emptying `logs/results.csv` and `reports/figures`, in which oversmoothing and oversquashing plots will be stored. Note that the results will differ slightly from those presented in the report, as the experiment has been updated to address the footnotes.
 Alternatively, to run your own, execute `run.py` with the following parameters:
 - `classification_task` - Classification task: either graph or node.
 - `model` - Name of chosen model. gin_jk only supported by the graph classification task.
@@ -50,6 +49,7 @@ Alternatively, to run your own, execute `run.py` with the following parameters:
 - `-d, --dataset` - *optional*, Name of dataset on which to train model.
 - `-a, --activation` - *optional*, Activation function used by neural network.
 - `-nh, --n_hidden_layers` - *optional*, Number of hidden layers to include in neural network.
+- `-t, --add_edges_thres` - *optional*, Threshold, as a percentage of original edge cardinality, for amount of new random edges to add
 - `--n_heads` - *optional*, Number of heads for multi-head attention. GATs only!
 - `--jk_mode` - *optional*, Mode of jumping knowledge for graph classification gin_jk.
 - `--plot_energy` - *optional*, Plot Dirichlet energy of each layer.
@@ -66,6 +66,3 @@ python run.py node gin -d pubmed -nh 2 --plot_energy --plot_rayleigh
 will log performance to `logs/results.csv` and save the following graphs to `reports/figures`:
 <img src="assets/imgs/node_GIN_2h_energy.png" width="350" />
 <img src="assets/imgs/node_GIN_2h_rayleigh.png" width="350" />
-
-## Results
-TODO

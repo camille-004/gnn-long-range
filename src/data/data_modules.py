@@ -5,6 +5,7 @@ import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid, TUDataset
 from torch_geometric.loader import DataLoader
 
+from src.data.add_edges import AddRandomEdges
 from src.utils import load_config
 
 config = load_config("data_config.yaml")
@@ -27,6 +28,11 @@ class NodeDataModule(pl.LightningDataModule):
             if "dataset_name" in kwargs.keys()
             else node_data_config["node_data_name_default"]
         )
+        self.add_edges_thres = (
+            kwargs["add_edges_thres"]
+            if "add_edges_thres" in kwargs.keys()
+            else node_data_config["add_edges_thres"]
+        )
         self.norm_features = (
             kwargs["norm_features"]
             if "norm_features" in kwargs.keys()
@@ -43,7 +49,7 @@ class NodeDataModule(pl.LightningDataModule):
             else config["num_cpus_default"]
         )
 
-        self.transform = []
+        self.transform = [AddRandomEdges(self.add_edges_thres)]
 
         if self.norm_features:
             self.transform.append(T.NormalizeFeatures())

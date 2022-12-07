@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
-from src.data_modules import GraphDataModule, NodeDataModule
+from src.data.data_modules import GraphDataModule, NodeDataModule
 from src.models.graph_classification.base import BaseGraphClassifier
 from src.models.graph_classification.gat import GraphLevelGAT
 from src.models.graph_classification.gcn import GraphLevelGCN
@@ -29,17 +29,16 @@ from src.models.node_classification.gat import NodeLevelGAT
 from src.models.node_classification.gcn import NodeLevelGCN
 from src.models.node_classification.gin import NodeLevelGIN
 from src.utils import load_config
-from src.visualize import (
-    plot_dirichlet_energies,
-    plot_influences,
-    plot_rayleigh_quotients,
-)
+from src.visualize import (plot_dirichlet_energies, plot_influences,
+                           plot_rayleigh_quotients)
 
 data_config = load_config("data_config.yaml")
 training_config = load_config("training_config.yaml")
 global_config = load_config("global_config.yaml")
 
 sns.set_style(global_config["sns_style"])
+
+# TODO Turn model map into Enum
 
 
 def get_model(
@@ -114,6 +113,7 @@ def prepare_training(
     task: str,
     _model: str,
     n_hidden: int,
+    add_edges_thres: float,
     activation: str = None,
     dataset_name: str = data_config["node"]["node_data_name_default"],
     **kwargs,
@@ -132,6 +132,9 @@ def prepare_training(
         Name of model to train.
     n_hidden : int
         Number of hidden layers in the neural network.
+    add_edges_thres : float
+        Threshold (as a percentage of original edge cardinality) of edges to
+        randomly add to the input graph.
     activation : str
         Activation function to use in the neural network.
     dataset_name : str
@@ -150,7 +153,9 @@ def prepare_training(
     if task == "graph":
         _data_module = GraphDataModule(dataset_name=dataset_name)
     else:
-        _data_module = NodeDataModule(dataset_name=dataset_name)
+        _data_module = NodeDataModule(
+            dataset_name=dataset_name, add_edges_thres=add_edges_thres
+        )
 
     if activation is not None:
         activation_fn = get_activation(activation)
@@ -279,6 +284,7 @@ def train_module(
             _model.model_name,
             _data_module.dataset_name,
             _model.n_hidden,
+            _data_module.add_edges_thres,
             np.round(model_results["val_loss"], 4),
             np.round(model_results["val_accuracy"], 4),
             np.round(model_results["test_loss"], 4),

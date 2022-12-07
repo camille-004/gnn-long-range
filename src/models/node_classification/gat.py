@@ -6,12 +6,9 @@ from torch import Tensor
 from torch.nn import ELU
 from torch_geometric.nn import GATConv
 
-from src.utils import (
-    dirichlet_energy,
-    get_graph_laplacian,
-    load_config,
-    rayleigh_quotient,
-)
+from src.models.utils import (dirichlet_energy, get_graph_laplacian,
+                              rayleigh_quotient)
+from src.utils import load_config
 
 from .base import BaseNodeClassifier
 
@@ -67,9 +64,15 @@ class NodeLevelGAT(BaseNodeClassifier):
         )
 
         self.convs = nn.ModuleList()
-        self.convs.append(
-            GATConv(self.num_features, self.hidden_channels, self.num_heads)
-        )
+
+        if self.n_hidden > 0:
+            self.convs.append(
+                GATConv(self.num_features, self.hidden_channels, self.num_heads)
+            )
+        else:
+            self.convs.append(
+                GATConv(self.num_features, self.hidden_channels * self.num_heads, self.num_heads)
+            )
 
         for _ in range(self.n_hidden):
             self.convs.append(
