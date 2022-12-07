@@ -1,7 +1,6 @@
 import csv
-import warnings
 from pathlib import Path
-from typing import Dict, Tuple, Type, Union
+from typing import Dict, Tuple, Type
 
 import numpy as np
 import pytorch_lightning as pl
@@ -12,120 +11,51 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
-from src.data.data_modules import GraphDataModule, NodeDataModule
-from src.models.graph_classification.base import BaseGraphClassifier
-from src.models.graph_classification.gat import GraphLevelGAT
-from src.models.graph_classification.gcn import GraphLevelGCN
 
-# isort: off
-from src.models.graph_classification.gin import (
-    GraphLevelGIN,
-    GraphLeveLGINWithJK,
-)
-
-# isort: on
-from src.models.node_classification.base import BaseNodeClassifier
-from src.models.node_classification.gat import NodeLevelGAT
-from src.models.node_classification.gcn import NodeLevelGCN
-from src.models.node_classification.gin import NodeLevelGIN
-from src.utils import load_config
-from src.visualize import (plot_dirichlet_energies, plot_influences,
-                           plot_rayleigh_quotients)
+from ..data.data_module import NodeDataModule
+from ..types.enums import Activation, Model
+from ..utils import load_config
+from ..visualize import (plot_dirichlet_energies, plot_influences,
+                         plot_rayleigh_quotients)
+from .base import BaseNodeClassifier
+from .gat import NodeLevelGAT
+from .gcn import NodeLevelGCN
+from .gin import NodeLevelGIN
 
 data_config = load_config("data_config.yaml")
+model_config = load_config("model_config.yaml")
 training_config = load_config("training_config.yaml")
 global_config = load_config("global_config.yaml")
 
 sns.set_style(global_config["sns_style"])
 
-# TODO Turn model map into Enum
 
+ACTIVATION_MAP: Dict[Activation, nn.Module] = {
+    Activation.ELU: nn.ELU(),
+    Activation.RELU: nn.ReLU(),
+    Activation.TANH: nn.Tanh(),
+}
 
-def get_model(
-    task: str, model_name: str
-) -> Type[Union[BaseGraphClassifier, BaseNodeClassifier]]:
-    """
-    Return the type of model to use from the model name.
-
-    Parameters
-    ----------
-    task : str
-        Either "node" or "graph" for node or graph classification,
-        respectively.
-    model_name : str
-        Name of model to train.
-
-    Returns
-    -------
-    Union[BaseGraphClassifier, BaseNodeClassifier]
-        Class of the model to train.
-    """
-    model_map = {
-        "graph": {
-            "gat": GraphLevelGAT,
-            "gcn": GraphLevelGCN,
-            "gin": GraphLevelGIN,
-            "gin_jk": GraphLeveLGINWithJK,
-        },
-        "node": {
-            "gat": NodeLevelGAT,
-            "gcn": NodeLevelGCN,
-            "gin": NodeLevelGIN,
-        },
-    }
-
-    if task == "graph":
-        assert model_name in model_map["graph"].keys()
-    else:
-        assert model_name in model_map["node"].keys()
-
-    return model_map[task][model_name]
-
-
-def get_activation(activation: str = "relu") -> nn.Module:
-    """
-    Get the instance of an activation function from the function name.
-
-    Parameters
-    ----------
-    activation : str
-        Name of the activation function.
-
-    Returns
-    -------
-    nn.Module
-        Instance of the activation function
-
-    """
-    if activation == "relu":
-        warnings.warn(
-            f"Non-differentiable function: {activation}. Might not be able to "
-            f"get accurate influences."
-        )
-
-    activation_map = {"relu": nn.ReLU(), "elu": nn.ELU(), "tanh": nn.Tanh()}
-
-    assert activation in activation_map.keys(), "Unknown activation function."
-    return activation_map[activation]
+MODEL_MAP: Dict[Model, Type[BaseNodeClassifier]] = {
+    Model.GAT: NodeLevelGAT,
+    Model.GCN: NodeLevelGCN,
+    Model.GIN: NodeLevelGIN,
+}
 
 
 def prepare_training(
-    task: str,
     _model: str,
     n_hidden: int,
     add_edges_thres: float,
     activation: str = None,
     dataset_name: str = data_config["node"]["node_data_name_default"],
     **kwargs,
-) -> Tuple[
-    Union[GraphDataModule, NodeDataModule],
-    Union[BaseGraphClassifier, BaseNodeClassifier],
-]:
+) -> Tuple[NodeDataModule, BaseNodeClassifier,]:
     """
     Return DataModule and specified model for the input task.
     Parameters
     ----------
-    task : str
+    task : Task
         Either "node" or "graph" for node or graph classification,
         respectively.
     _model : str
@@ -148,34 +78,30 @@ def prepare_training(
     ]
         DataModule and model instance for training.
     """
-    assert task in ["graph", "node"], "Unknown task."
-
-    if task == "graph":
-        _data_module = GraphDataModule(dataset_name=dataset_name)
-    else:
-        _data_module = NodeDataModule(
-            dataset_name=dataset_name, add_edges_thres=add_edges_thres
-        )
-
     if activation is not None:
-        activation_fn = get_activation(activation)
-    else:
-        activation_fn = None
+        activation = ACTIVATION_MAP[activation]
 
-    model_type = get_model(task, _model)
-    model_instance = model_type(
-        n_hidden=n_hidden,
-        activation=activation_fn,
-        num_features=_data_module.num_features,
-        num_classes=_data_module.num_classes,
+    _data_module = NodeDataModule(
+        dataset_name=dataset_name, add_edges_thres=add_edges_thres
+    )
+
+    model_instance = MODEL_MAP[_model](
+        _data_module.num_features,
+        _data_module.num_classes,
+        model_config["hidden_channels_default"],
+        n_hidden,
+        model_config["dropout"],
+        model_config["lr"],
+        model_config["weight_decay"],
+        activation=activation,
         **kwargs,
     )
     return _data_module, model_instance
 
 
 def train_module(
-    _data_module: Union[GraphDataModule, NodeDataModule],
-    _model: Union[BaseGraphClassifier, BaseNodeClassifier],
+    _data_module: NodeDataModule,
+    _model: BaseNodeClassifier,
     use_early_stopping: bool = True,
     early_stopping_patience: int = training_config[
         "early_stopping_patience_default"

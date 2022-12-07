@@ -7,8 +7,8 @@ import pandas as pd
 import seaborn as sns
 from torch_geometric.data import Data
 
-from src.data.data_modules import NodeDataModule
-from src.models.node_classification.base import BaseNodeClassifier
+from src.data.data_module import NodeDataModule
+from src.models.base import BaseNodeClassifier
 from src.models.utils import get_jacobian
 from src.utils import load_config
 

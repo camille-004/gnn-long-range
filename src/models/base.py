@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Literal, Tuple
+from typing import Any, Callable, List, Literal, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -7,28 +7,46 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.data import Data
 
+from src.models.utils import (dirichlet_energy, get_graph_laplacian,
+                              rayleigh_quotient)
+
 Mode = Literal["train", "val", "test"]
 
 
 class BaseNodeClassifier(pl.LightningModule):
     """Base node classifier."""
 
-    def __init__(self, n_hidden: int, activation: nn.Module, **kwargs) -> None:
+    def __init__(
+        self,
+        num_features: int,
+        num_classes: int,
+        hidden_dim: int,
+        n_hidden: int,
+        dropout: float,
+        lr: float,
+        weight_decay: float,
+        activation: Optional[nn.Module] = None,
+        **kwargs,
+    ) -> None:
         super().__init__()
         pl.utilities.seed.seed_everything(1)
 
-        assert n_hidden >= 0, "Number of hidden layers must be non-negative."
-        self.n_hidden = n_hidden
+        self._model_name: str = "base_node_clf"
+        self.criterion: Callable[
+            [Tensor, Tensor], Tensor
+        ] = nn.CrossEntropyLoss()
+        self.energies: Optional[List[float]] = None
+        self.rayleigh: Optional[List[float]] = None
+
+        self.dropout = dropout
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.activation = activation
 
-        self._model_name = "base_node_clf"
+        assert n_hidden >= 0, "Number of hidden layers must be non-negative."
+        self.n_hidden = n_hidden
 
-        self.num_features: int = 0
-        self.num_classes: int = 0
-
-        self.loss_fn: Callable[[Tensor, Tensor], Tensor] = F.nll_loss
-        self.lr = 0.01
-        self.weight_decay = 5e-4
+        self.convs = nn.ModuleList()
 
     @property
     def model_name(self) -> str:
@@ -41,7 +59,7 @@ class BaseNodeClassifier(pl.LightningModule):
         """
         return self._model_name
 
-    def forward(self, x: Any, edge_index: Any) -> Tensor:
+    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
         """
         Forward pass.
 
@@ -57,7 +75,21 @@ class BaseNodeClassifier(pl.LightningModule):
         Tensor
             Output of the forward pass.
         """
-        raise NotImplementedError
+        _L = get_graph_laplacian(edge_index, x.size(0))
+        self.energies = []
+        self.rayleigh = []
+
+        for i in range(self.n_hidden + 2):
+            x = self.convs[i](x, edge_index)
+            energy = dirichlet_energy(x, _L)
+            rayleigh = rayleigh_quotient(x, _L)
+            x = self.activation(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+            self.energies.append(energy)
+            self.rayleigh.append(rayleigh)
+
+        return F.log_softmax(x, dim=1), x
 
     def step_util(self, batch: Data, mode: Mode) -> Tuple[Tensor, Any]:
         """
@@ -89,7 +121,7 @@ class BaseNodeClassifier(pl.LightningModule):
         else:
             assert False, f"Unknown forward mode: {mode}"
 
-        loss = self.loss_fn(x_out[mask], batch.y[mask])
+        loss = self.criterion(x_out[mask], batch.y[mask])
 
         # Metrics
         pred = x_out[mask].argmax(-1)

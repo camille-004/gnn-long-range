@@ -1,1 +1,3 @@
 model,dataset,num_hidden,add_edges_thres,val_loss,val_acc,test_loss,test_acc,activation,num_heads
+node_GIN,pubmed,0,0.0,0.7709,0.708,0.7913,0.697,Tanh,none
+node_GIN,pubmed,1,0.0,0.813,0.604,0.8517,0.569,Tanh,none

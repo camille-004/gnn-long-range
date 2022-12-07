@@ -1,34 +1,6 @@
 num_features_default: 3
 num_classes_default: 2
 hidden_channels_default: 16
-gat_params:
-  graph:
-    dropout: 0.6
-    alpha: 0.2
-    num_heads: 1
-    concat: true
-    lr: 0.005
-    weight_decay: 0.0005
-  node:
-    dropout: 0.6
-    alpha: 0.2
-    num_heads: 1
-    concat: true
-    lr: 0.005
-    weight_decay: 0.0005
-gin_params:
-  dropout: 0.5
-  lr: 0.01
-  weight_decay: 0.01
-  mode: none
-gcn_params:
-  node:
-    hidden_channels: 16
-    dropout: 0.5
-    lr: 0.01
-    weight_decay: 0.0005
-  graph:
-    hidden_channels: 64
-    dropout: 0.5
-    lr: 0.01
-    weight_decay: 0.0005
+lr: 0.01
+weight_decay: 0.0005
+dropout: 0.5

@@ -12,12 +12,6 @@ parser = argparse.ArgumentParser()
 
 # Set up CLI
 parser.add_argument(
-    "classification_task",
-    choices=["graph", "node"],
-    type=str,
-    help="Classification task: either graph or node.",
-)
-parser.add_argument(
     "model",
     choices=["gat", "gcn", "gin", "gin_jk"],
     type=str,
@@ -69,12 +63,6 @@ parser.add_argument(
     help="Number of heads for multi-head attention. GATs only!",
 )
 parser.add_argument(
-    "--jk_mode",
-    default="none",
-    type=str,
-    help="Mode of jumping knowledge for graph classification gin_jk.",
-)
-parser.add_argument(
     "--plot_energy",
     action="store_true",
     help="Plot Dirichlet energy of each layer.",
@@ -94,28 +82,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     wandb.login()
 
-    task = args.classification_task
-
-    if args.model == "gin_jk":
-        assert (
-            task == "graph"
-        ), "gin_jk only supported by graph classification."
-
-    if task == "graph" and any([args.plot_energy, args.plot_influence]):
-        parser.error(
-            "Plotting Dirichlet energy and neighborhood influence not"
-            "supported for graph classification."
-        )
-
     data, model = prepare_training(
-        task,
         args.model,
         args.n_hidden_layers,
         args.add_edges_thres,
         args.activation,
         dataset_name=args.dataset,
-        num_heads=args.n_heads,
-        mode=args.jk_mode,
+        n_heads=args.n_heads,
     )
 
     results = train_module(

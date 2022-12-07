@@ -13,7 +13,7 @@ do
         if [ $MODEL = gat ]; then
           for N_HEADS in 1 2 8 16
           do
-            python run.py node $MODEL \
+            python run.py $MODEL \
             -d $DATASET \
             -nh $N_HIDDEN \
             -t $THRES \
@@ -25,7 +25,7 @@ do
           done
         else
           # Use tanh, differentiable
-          python run.py node $MODEL \
+          python run.py $MODEL \
           -d $DATASET \
           -nh $N_HIDDEN \
           -t $THRES \

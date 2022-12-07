@@ -1,15 +1,13 @@
-from typing import List, Union
+from typing import List
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.utils import get_laplacian, to_networkx
-
-from src.models.graph_classification.base import BaseGraphClassifier
-from src.models.node_classification.base import BaseNodeClassifier
 
 
 def get_graph_laplacian(
@@ -71,7 +69,7 @@ def k_hop_nb(data: Data, node: int, r: int) -> List[int]:
 
 
 def get_jacobian(
-    _model: Union[BaseGraphClassifier, BaseNodeClassifier],
+    _model: pl.LightningModule,
     _data: Data,
     node: int,
     r: int,
