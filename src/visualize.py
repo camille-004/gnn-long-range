@@ -7,10 +7,10 @@ import pandas as pd
 import seaborn as sns
 from torch_geometric.data import Data
 
-from src.data.data_module import NodeDataModule
-from src.models.base import BaseNodeClassifier
-from src.models.utils import get_jacobian
-from src.utils import load_config
+from .data.data_module import NodeDataModule
+from .models.base import BaseNodeClassifier
+from .models.utils import get_jacobian
+from .utils import load_config
 
 global_config = load_config("global_config.yaml")
 training_config = load_config("training_config.yaml")

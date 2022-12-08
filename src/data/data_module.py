@@ -5,8 +5,8 @@ import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 from torch_geometric.loader import DataLoader
 
-from src.data.add_edges import AddRandomEdges
-from src.utils import load_config
+from ..utils import load_config
+from .add_edges import AddRandomEdges
 
 config = load_config("data_config.yaml")
 DATA_DIR = config["data_dir"]

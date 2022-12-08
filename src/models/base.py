@@ -7,8 +7,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.data import Data
 
-from src.models.utils import (dirichlet_energy, get_graph_laplacian,
-                              rayleigh_quotient)
+from .utils import dirichlet_energy, get_graph_laplacian, rayleigh_quotient
 
 Mode = Literal["train", "val", "test"]
 
