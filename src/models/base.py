@@ -7,6 +7,8 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.data import Data
 
+from .sognn_layer import SOGNNConv
+
 from .utils import dirichlet_energy, get_graph_laplacian, rayleigh_quotient
 
 Mode = Literal["train", "val", "test"]
@@ -78,8 +80,19 @@ class BaseNodeClassifier(pl.LightningModule):
         self.energies = []
         self.rayleigh = []
 
+        if self._model_name == "node_SOGNN":
+            edge_index_distant = SOGNNConv.get_distant_adjacent_matrix(
+                edge_index=edge_index,
+                mode="mean",
+                temperatur=100
+            )
+            print("Selected distant node: ",edge_index_distant)
+
         for i in range(self.n_hidden + 2):
-            x = self.convs[i](x, edge_index)
+            if self._model_name == "node_SOGNN":
+                x = self.convs[i](x, edge_index, edge_index_distant) 
+            else:
+                x = self.convs[i](x, edge_index)
             energy = dirichlet_energy(x, _L)
             rayleigh = rayleigh_quotient(x, _L)
             x = self.activation(x)

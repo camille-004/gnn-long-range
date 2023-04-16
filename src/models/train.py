@@ -21,6 +21,7 @@ from .base import BaseNodeClassifier
 from .gat import NodeLevelGAT
 from .gcn import NodeLevelGCN
 from .gin import NodeLevelGIN
+from .sognn import NodeLevelSOGNN
 
 data_config = load_config("data_config.yaml")
 model_config = load_config("model_config.yaml")
@@ -40,6 +41,7 @@ MODEL_MAP: Dict[Model, Type[BaseNodeClassifier]] = {
     Model.GAT: NodeLevelGAT,
     Model.GCN: NodeLevelGCN,
     Model.GIN: NodeLevelGIN,
+    Model.SOGNN: NodeLevelSOGNN
 }
 
 
@@ -175,8 +177,9 @@ def train_module(
         callbacks=callbacks,
         max_epochs=max_epochs,
         accelerator=device,
+        enable_progress_bar=True,
     )
-
+    print("==============\nTRAINING START\n==============\n")
     trainer.fit(model=_model, datamodule=_data_module)
     val_data = next(iter(_data_module.val_dataloader()))
 
