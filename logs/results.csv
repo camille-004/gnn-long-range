@@ -1,3 +1,12 @@
 model,dataset,num_hidden,add_edges_thres,val_loss,val_acc,test_loss,test_acc,activation,num_heads
 node_GIN,pubmed,0,0.0,0.7709,0.708,0.7913,0.697,Tanh,none
 node_GIN,pubmed,1,0.0,0.813,0.604,0.8517,0.569,Tanh,none
+node_SOGNN,pubmed,10,0.0,1.1842,0.196,1.1999,0.18,ReLU,none
+node_SOGNN,cora,10,0.0,1.9125,0.162,1.9259,0.15,ReLU,none
+node_SOGNN,pubmed,10,0.0,1.179,0.196,1.1945,0.181,ReLU,none
+node_SOGNN,pubmed,10,0.0,1.0785,0.416,1.0675,0.407,Tanh,none
+node_SOGNN,pubmed,10,0.0,1.1429,0.196,1.1439,0.18,Tanh,none
+node_SOGNN,pubmed,10,0.0,1.1561,0.324,1.1797,0.18,ReLU,none
+node_GCN,pubmed,10,0.0,1.0986,0.196,1.0986,0.18,ReLU,none
+node_GCN,pubmed,2,0.0,1.0998,0.196,1.1001,0.18,ReLU,none
+node_GCN,pubmed,3,0.0,1.1014,0.196,1.1015,0.18,ReLU,none

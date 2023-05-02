@@ -1,0 +1,11 @@
+verbose: 1
+mode: min
+r: 3
+mean: 
+  scale: 5
+threshold: 
+  value: 3
+random_sample:
+  scale: 1
+min: 
+  scale: 5

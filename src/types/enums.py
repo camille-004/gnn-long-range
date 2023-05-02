@@ -15,3 +15,4 @@ class Model(str, Enum):
     GAT = "gat"
     GCN = "gcn"
     GIN = "gin"
+    SOGNN = "sognn"

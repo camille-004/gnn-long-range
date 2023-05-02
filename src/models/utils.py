@@ -109,11 +109,14 @@ def get_jacobian(
         _data.x,
         torch.ones_like(embeddings[node]),
         retain_graph=True,
-    )[0][neighbor_nodes_idx]
-    abs_grad = sum_of_grads.absolute()
+    )[0]
+    abs_grad = sum_of_grads[neighbor_nodes_idx].absolute()
     sum_of_jacobian = abs_grad.sum(axis=1)
-    influence_y_on_x = sum_of_jacobian / sum_of_jacobian.sum(dim=0)
-    influence_y_on_x = influence_y_on_x.cpu().numpy()
+    if sum_of_jacobian.sum(dim=0).item():
+        influence_y_on_x = sum_of_jacobian / sum_of_jacobian.sum(dim=0)
+        influence_y_on_x = influence_y_on_x.cpu().numpy()
+    else:
+        influence_y_on_x = torch.zeros_like(sum_of_jacobian).cpu().numpy()
     return pd.DataFrame(data={"influence": influence_y_on_x, "r": r})
 
 

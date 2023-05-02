@@ -184,8 +184,8 @@ def plot_influences(
         for k in range(1, r + 1):
             influence = get_jacobian(_model, _data, i[0], k)
             influences.append(influence)
-
         influences_df = pd.concat(influences)
+        print(influences_df.reset_index(drop=True))
 
         try:
             sns.violinplot(

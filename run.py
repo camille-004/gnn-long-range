@@ -5,6 +5,9 @@ import wandb
 from src.models.train import prepare_training, train_module
 from src.utils import load_config
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 data_config = load_config("data_config.yaml")
 training_config = load_config("training_config.yaml")
 
@@ -13,7 +16,7 @@ parser = argparse.ArgumentParser()
 # Set up CLI
 parser.add_argument(
     "model",
-    choices=["gat", "gcn", "gin", "gin_jk"],
+    choices=["gat", "gcn", "gin", "gin_jk", "sognn"],
     type=str,
     help="Name of chosen model. gin_jk only supported by the graph "
     "classification task.",
@@ -80,7 +83,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    wandb.login()
+    wandb.init(project='sognn_debug')
 
     data, model = prepare_training(
         args.model,

@@ -104,7 +104,7 @@ def prepare_training(
 def train_module(
     _data_module: NodeDataModule,
     _model: BaseNodeClassifier,
-    use_early_stopping: bool = True,
+    use_early_stopping: bool = False,
     early_stopping_patience: int = training_config[
         "early_stopping_patience_default"
     ],

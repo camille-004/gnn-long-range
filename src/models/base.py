@@ -81,18 +81,11 @@ class BaseNodeClassifier(pl.LightningModule):
         self.rayleigh = []
 
         if self._model_name == "node_SOGNN":
-            edge_index_distant = SOGNNConv.get_distant_adjacent_matrix(
-                edge_index=edge_index,
-                mode="mean",
-                temperatur=100
-            )
-            print("Selected distant node: ",edge_index_distant)
+            SOGNNConv.set_distant_adjacency_matrix(edge_index=edge_index)
 
         for i in range(self.n_hidden + 2):
-            if self._model_name == "node_SOGNN":
-                x = self.convs[i](x, edge_index, edge_index_distant) 
-            else:
-                x = self.convs[i](x, edge_index)
+
+            x = self.convs[i](x, edge_index)
             energy = dirichlet_energy(x, _L)
             rayleigh = rayleigh_quotient(x, _L)
             x = self.activation(x)
