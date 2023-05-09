@@ -5,8 +5,9 @@ from torch import Tensor
 from torch_geometric.nn.conv import MessagePassing
 from torch.nn import Linear, LayerNorm
 from torch_sparse import SparseTensor, spspmm
-import yaml
-sognn_config = yaml.load(open('/home/lihao/hdd/sognn/config/sognn_config.yaml', 'br'), Loader=yaml.FullLoader)
+from ..utils import load_config
+
+sognn_config = load_config('sognn_config.yaml')
 
 class SOGNNConv(MessagePassing):
     edge_index_distant: SparseTensor = None
