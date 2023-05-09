@@ -14,12 +14,11 @@ class SOGNNConv(MessagePassing):
     def __init__(
             self, 
             in_channels: int, 
-            out_channels: int, 
-            distant_param: int=5, 
-            chunk_size: int=4
+            out_channels: int,  
+            chunk_size: int=sognn_config['chunk_size']
     ):
         super(SOGNNConv, self).__init__('mean')  # 'add', 'sum', 'mean', 'min', 'max'
-
+        self.in_channels = in_channels
         self.out_channels = out_channels
         self.lin = Linear(in_channels, out_channels)
         self.norm = LayerNorm(out_channels)
@@ -48,25 +47,31 @@ class SOGNNConv(MessagePassing):
         return out
 
 
+    def extra_repr(self) -> str:
+        return f'{self.in_channels}, {self.out_channels}, r={sognn_config["r"]}'
+
+
     @classmethod
     def check_config(cls, config:dict):
-        mode_list = ['mean', 'threshold', 'random_sample', 'min']
+        mode_list = ['mean', 'threshold', 'random_sample', 'min', 'min_all']
         mode = config['mode']
         r = config['r']
         assert r > 1, "distance should be greater than 1"
         assert mode in mode_list, "unvalid mode selected, pleace choose one mode in {}.".format(mode_list)
 
         config: dict = config[mode]
-        if mode == 'mean':
-            scale:int = config['scale']
-            assert scale, "scale should be set"
-        if mode == 'threshold':
-            threshold:int = config['value']
-            assert threshold, "threshold value should be set"
-        if mode in ['random_sample', 'min']:
-            scale: int = config['scale']
-            assert scale, "scale should be set"
-
+        # if mode == 'mean':
+        #     scale:int = config['scale']
+        #     assert scale, "scale should be set"
+        # if mode == 'threshold':
+        #     threshold:int = config['value']
+        #     assert threshold, "threshold value should be set"
+        # if mode in ['random_sample', 'min']:
+        #     scale: int = config['scale']
+        #     assert scale, "scale should be set"
+        # if mode == 'min_all':
+        #     num: int = config['num']
+        #     assert num, "num should be set"
         return mode, r, config
 
 
@@ -99,9 +104,9 @@ class SOGNNConv(MessagePassing):
                 )
 
             # 用不同的规则构造远距离squash点的邻接矩阵
-            if mode in ['mean', 'threshold']:
+            if mode in ['mean', 'threshold', 'min', 'random_sample']:
                 # 1. 计算切分点
-                ei = edge_index[0]
+                ei = edge_index_distant[0]
                 ei_ = torch.cat([ei[0:1], ei[:-1]])
 
                 cutpoints = torch.nonzero(ei - ei_).squeeze().tolist()
@@ -110,7 +115,7 @@ class SOGNNConv(MessagePassing):
                 # 2. 切分spt
                 adj_raw = [(edge_index_distant[:, start:end], value_edge_index_distant[start:end]) 
                             for start, end in zip(cutpoints[:-1], cutpoints[1:])]
-                
+
                 # 3. 对spt进行筛选
                 if mode=="mean":
                 # 筛选||大于零|小于平均值||的邻居的index ———— Sparse Tensor
@@ -118,30 +123,41 @@ class SOGNNConv(MessagePassing):
                     adj_selected_raw = [data[:, value<mean] for (data, value), mean in zip(adj_raw, mean_value)]
                 
                 if mode=="threshold":
-                    adj_selected_raw = [data[: value<=config['value']] for (data, value) in adj_selected]
+                    adj_selected_raw = [data[:, value<=config['value']] for (data, value) in adj_raw]
+
+                if mode=="min":
+                    adj_selected_raw = []
+                    num = config['num']
+                    for (data, value) in adj_raw:
+                        if len(value) > num:
+                            _, index = torch.topk(value, num, largest=False)
+                            adj_selected_raw.append(data[:, torch.sort(index).values])
+                        else:
+                            adj_selected_raw.append(data)
                 
+                if mode=="random_sample":
+                    adj_selected_raw = []
+                    for (data, value) in adj_raw:
+                        if len(value) > config['num']:
+                            probabilities = torch.max(value) - value
+                            index = torch.multinomial(probabilities, config['num'])
+                            adj_selected_raw.append(data[:, torch.sort(index).values])
+                        else:
+                            adj_selected_raw.append(data)
 
                 # 4. 将筛选出来的spt拼接成最终的spt
                 adj_selected = torch.cat(adj_selected_raw, dim=-1)
                 spt_distant = SparseTensor.from_edge_index(adj_selected, sparse_sizes=(nodes, nodes))
 
-            if mode == 'random_sample':
-                probabilities = 1 / value_edge_index_distant
-                # 元素太多不支持sample
-                index_selected = torch.multinomial(probabilities, int(edge_index.shape[1]/config['scale']))
-                spt_distant = SparseTensor.from_edge_index(
-                    edge_index=edge_index[:, torch.sort(index_selected).values],
-                    sparse_sizes=(nodes, nodes)
-                )
             
-            if mode == 'min':
+            if mode == 'min_all':
                 _, index_selected = torch.topk(value_edge_index_distant, int(edge_index.shape[1]/config['scale']), largest=False)
                 spt_distant = SparseTensor.from_edge_index(
-                    edge_index=edge_index[:, torch.sort(index_selected).values],
+                    edge_index=edge_index_distant[:, torch.sort(index_selected).values],
                     sparse_sizes=(nodes, nodes)
                 )
 
-        return spt_distant
+        return spt_distant, mode
 
     
     @classmethod
@@ -150,10 +166,14 @@ class SOGNNConv(MessagePassing):
         edge_index: Tensor,
         ) -> None:
         '''使用SOGNN时，根据数据的邻接矩阵选取squash矩阵'''
+        '''
         # TODO:如何使用@functools.cache优化这段代码，主要是将Tensor转化为可哈希对象。
+        # 👆已解决，因为每次传入的edge_index都是相同的，所以计算一次就可以了
+        '''
         if not cls.edge_index_distant:
-            cls.edge_index_distant = cls.get_distant_adjacency_matrix(edge_index=edge_index)
-            print("-" * 35 + "Adjacency matrix distant" + "-" * 35)
+            cls.edge_index_distant, mode = cls.get_distant_adjacency_matrix(edge_index=edge_index)
+            print(f'\nCalculating Adjacency matrix distant with MODE <{mode}> ...')
+            print("=" * 35 + "Adjacency matrix distant" + "=" * 35)
             print(cls.edge_index_distant)
             print("=" * 35 + "Adjacency matrix distant" + "=" * 35)
 

@@ -3,7 +3,7 @@ from typing import Optional
 
 import torch.nn as nn
 from .sognn_layer import SOGNNConv
-
+from torch.nn import Linear
 from .base import BaseNodeClassifier
 
 
@@ -48,4 +48,4 @@ class NodeLevelSOGNN(BaseNodeClassifier):
         for _ in range(n_hidden):
             self.convs.append(SOGNNConv(hidden_dim, hidden_dim))
 
-        self.convs.append(SOGNNConv(hidden_dim, num_classes))
+        self.convs.append(Linear(hidden_dim, num_classes))

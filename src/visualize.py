@@ -40,7 +40,7 @@ def plot_dirichlet_energies(
     plt.figure()
     plt.plot(model_dirichlet_energies, color="black")
     plt.suptitle(
-        f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden} Hidden"
+        f"{_data.dataset_name}: {_model.model_name}-{_model.n_hidden+1} Hidden"
         f" - log(Dirichlet Energy)",
         fontsize=10,
     )
@@ -145,14 +145,18 @@ def plot_influences(
     )
 
     if n_nodes_influence > 1:
+        influences_ = []
         for j, val in enumerate(i):
             influences = []
+            influencess = []
             for k in range(1, r + 1):
-                influence_dist = get_jacobian(_model, _data, val, k)
+                influence_dist, influence_sum = get_jacobian(_model, _data, val, k)
                 if influence_dist["influence"].isnull().values.any():
                     continue
 
                 influences.append(influence_dist)
+                influencess.append(influence_sum)
+            influences_.append(influencess)
 
             if len(influences) == 0:
                 continue
@@ -181,14 +185,21 @@ def plot_influences(
         plt.title(f"add_edges_thres = {augmentation_thres}", fontsize=10)
     else:
         influences = []
+        influences_ = []
         for k in range(1, r + 1):
-            influence = get_jacobian(_model, _data, i[0], k)
+            influence, influence_sum = get_jacobian(_model, _data, i[0], k)
             influences.append(influence)
+            influences_.append(influence_sum)
         influences_df = pd.concat(influences)
-        print(influences_df.reset_index(drop=True))
 
         try:
-            sns.violinplot(
+            # sns.violinplot(
+            #     data=influences_df.reset_index(drop=True),
+            #     x="r",
+            #     y="influence",
+            #     color="blue",
+            # )
+            sns.boxplot(
                 data=influences_df.reset_index(drop=True),
                 x="r",
                 y="influence",
@@ -199,11 +210,11 @@ def plot_influences(
             return
 
         plt.title(
-            f"{_model.model_name}-{_model.n_hidden}\nJacobian at r = {r}, "
-            f"Node = {i}, add_edges_thres = {augmentation_thres}",
+            f"{_model.model_name}-{_model.n_hidden+1}\nJacobian at r = {r}, "
+            f"Node = {i}",
             fontsize=10,
         )
-
+    print(f"Inlfuences: {influences_}")
     save_dir = Path(
         training_config["save_plots_dir"],
         f"{_data_module.dataset_name}_results",

@@ -8,7 +8,6 @@ from torch import Tensor
 from torch_geometric.data import Data
 
 from .sognn_layer import SOGNNConv
-
 from .utils import dirichlet_energy, get_graph_laplacian, rayleigh_quotient
 
 Mode = Literal["train", "val", "test"]
@@ -83,8 +82,7 @@ class BaseNodeClassifier(pl.LightningModule):
         if self._model_name == "node_SOGNN":
             SOGNNConv.set_distant_adjacency_matrix(edge_index=edge_index)
 
-        for i in range(self.n_hidden + 2):
-
+        for i in range(self.n_hidden + 1):
             x = self.convs[i](x, edge_index)
             energy = dirichlet_energy(x, _L)
             rayleigh = rayleigh_quotient(x, _L)
@@ -93,6 +91,8 @@ class BaseNodeClassifier(pl.LightningModule):
 
             self.energies.append(energy)
             self.rayleigh.append(rayleigh)
+        
+        x = self.convs[-1](x)
 
         return F.log_softmax(x, dim=1), x
 

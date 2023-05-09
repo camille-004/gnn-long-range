@@ -48,4 +48,4 @@ class NodeLevelGCN(BaseNodeClassifier):
         for _ in range(n_hidden):
             self.convs.append(GCNConv(hidden_dim, hidden_dim))
 
-        self.convs.append(GCNConv(hidden_dim, num_classes))
+        self.convs.append(nn.Linear(hidden_dim, num_classes))

@@ -104,7 +104,7 @@ def prepare_training(
 def train_module(
     _data_module: NodeDataModule,
     _model: BaseNodeClassifier,
-    use_early_stopping: bool = False,
+    use_early_stopping: bool = True,
     early_stopping_patience: int = training_config[
         "early_stopping_patience_default"
     ],
@@ -160,14 +160,15 @@ def train_module(
 
     if use_early_stopping:
         early_stopping = EarlyStopping(
-            monitor="val_accuracy",
-            mode="max",
+            monitor="val_loss",
+            mode="min",
             patience=early_stopping_patience,
             min_delta=early_stopping_min_delta,
+            verbose=True,
         )
         callbacks.append(early_stopping)
 
-    model_checkpoint = ModelCheckpoint(monitor="val_accuracy", mode="max")
+    model_checkpoint = ModelCheckpoint(monitor="val_loss", mode="min")
     callbacks.append(model_checkpoint)
     device = "gpu" if torch.cuda.is_available() else "cpu"
 
@@ -177,7 +178,6 @@ def train_module(
         callbacks=callbacks,
         max_epochs=max_epochs,
         accelerator=device,
-        enable_progress_bar=True,
     )
     print("==============\nTRAINING START\n==============\n")
     trainer.fit(model=_model, datamodule=_data_module)

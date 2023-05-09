@@ -8,6 +8,16 @@ import torch
 from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.utils import get_laplacian, to_networkx
+import pickle
+
+
+def write_edge_index(edge_index: Tensor, path: str):
+    with open(f'{path}.pkl', 'wb') as f:
+        pickle.dump(edge_index, f)
+    with open(f'{path}.data', 'w') as b:
+        for i in range(edge_index.shape[1]):
+            print(f'{edge_index[0][i].item()}', file=b, end=' '*(10-len(str(edge_index[0][i].item()))))
+            print(f'{edge_index[1][i].item()}', file=b)
 
 
 def get_graph_laplacian(
@@ -113,11 +123,13 @@ def get_jacobian(
     abs_grad = sum_of_grads[neighbor_nodes_idx].absolute()
     sum_of_jacobian = abs_grad.sum(axis=1)
     if sum_of_jacobian.sum(dim=0).item():
+        influence_sum = sum_of_jacobian.sum(dim=0).item()
         influence_y_on_x = sum_of_jacobian / sum_of_jacobian.sum(dim=0)
         influence_y_on_x = influence_y_on_x.cpu().numpy()
     else:
         influence_y_on_x = torch.zeros_like(sum_of_jacobian).cpu().numpy()
-    return pd.DataFrame(data={"influence": influence_y_on_x, "r": r})
+        influence_sum = 0
+    return pd.DataFrame(data={"influence": sum_of_jacobian.cpu().numpy(), "r": r}), influence_sum
 
 
 def rayleigh_quotient(x: Tensor, laplacian: Tensor) -> np.ndarray:
