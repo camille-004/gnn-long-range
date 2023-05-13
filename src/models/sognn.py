@@ -19,6 +19,7 @@ class NodeLevelSOGNN(BaseNodeClassifier):
         dropout: float,
         lr: float,
         weight_decay: float,
+        r: int,
         activation: Optional[nn.Module] = None,
         **kwargs
     ) -> None:
@@ -32,7 +33,7 @@ class NodeLevelSOGNN(BaseNodeClassifier):
             weight_decay=weight_decay,
             activation=activation
         )
-
+        self.r = r
         self._model_name = "node_SOGNN"
 
         if self.activation is None:
@@ -43,6 +44,7 @@ class NodeLevelSOGNN(BaseNodeClassifier):
             )
 
         self.convs = nn.ModuleList()
+        SOGNNConv.r = self.r
         self.convs.append(SOGNNConv(num_features, hidden_dim))
 
         for _ in range(n_hidden):

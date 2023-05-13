@@ -6,10 +6,13 @@ from torch_geometric.nn.conv import MessagePassing
 from torch.nn import Linear, LayerNorm
 from torch_sparse import SparseTensor, spspmm
 from ..utils import load_config
+from .utils import write_edge_index
 
 sognn_config = load_config('sognn_config.yaml')
 
 class SOGNNConv(MessagePassing):
+    r: int = None
+    mode: str = None
     edge_index_distant: SparseTensor = None
     
     def __init__(
@@ -86,7 +89,8 @@ class SOGNNConv(MessagePassing):
         '''
 
         mode, r, config = cls.check_config(sognn_config)
-
+        if cls.r:
+            r = cls.r
         with torch.no_grad():
             # 计算邻接矩阵的r次方，以稀疏矩阵的方式运算
             # 利用最小空间存储sparse tensor
@@ -138,10 +142,12 @@ class SOGNNConv(MessagePassing):
                 
                 if mode=="random_sample":
                     adj_selected_raw = []
+                    scale = int(edge_index_distant.shape[1] / edge_index.shape[1])
                     for (data, value) in adj_raw:
-                        if len(value) > config['num']:
+                        num = int(len(value) / scale * config['scale'])
+                        if num:
                             probabilities = torch.max(value) - value
-                            index = torch.multinomial(probabilities, config['num'])
+                            index = torch.multinomial(probabilities, num)
                             adj_selected_raw.append(data[:, torch.sort(index).values])
                         else:
                             adj_selected_raw.append(data)
@@ -171,6 +177,7 @@ class SOGNNConv(MessagePassing):
         # TODO:如何使用@functools.cache优化这段代码，主要是将Tensor转化为可哈希对象。
         # 👆已解决，因为每次传入的edge_index都是相同的，所以计算一次就可以了
         '''
+
         if not cls.edge_index_distant:
             cls.edge_index_distant, mode = cls.get_distant_adjacency_matrix(edge_index=edge_index)
             print(f'\nCalculating Adjacency matrix distant with MODE <{mode}> ...')

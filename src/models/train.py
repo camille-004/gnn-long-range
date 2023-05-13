@@ -22,6 +22,7 @@ from .gat import NodeLevelGAT
 from .gcn import NodeLevelGCN
 from .gin import NodeLevelGIN
 from .sognn import NodeLevelSOGNN
+from .sognn_layer import SOGNNConv
 
 data_config = load_config("data_config.yaml")
 model_config = load_config("model_config.yaml")
@@ -83,6 +84,7 @@ def prepare_training(
     if activation is not None:
         activation = ACTIVATION_MAP[activation]
 
+
     _data_module = NodeDataModule(
         dataset_name=dataset_name, add_edges_thres=add_edges_thres
     )
@@ -115,6 +117,7 @@ def train_module(
     plot_energies: bool = False,
     plot_rayleigh: bool = False,
     plot_influence: bool = False,
+    r:int = 5,
 ) -> Dict[str, Dict[str, float]]:
     """
     Set up WandB logger and PTL Trainer, train input model on input dataset,
@@ -175,6 +178,7 @@ def train_module(
     trainer = pl.Trainer(
         logger=wandb_logger,
         log_every_n_steps=1,
+        check_val_every_n_epoch=5,
         callbacks=callbacks,
         max_epochs=max_epochs,
         accelerator=device,
@@ -213,13 +217,13 @@ def train_module(
             _model.model_name,
             _data_module.dataset_name,
             _model.n_hidden,
-            _data_module.add_edges_thres,
+            # _data_module.add_edges_thres,
             np.round(model_results["val_loss"], 4),
             np.round(model_results["val_accuracy"], 4),
             np.round(model_results["test_loss"], 4),
             np.round(model_results["test_accuracy"], 4),
             type(_model.activation).__name__,
-            "none",
+            r,
         ]
 
         if hasattr(_model, "num_heads"):

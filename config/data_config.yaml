@@ -1,5 +1,5 @@
 data_dir: "data"
-batch_size_default: 32
+batch_size_default: 64
 num_cpus_default: 16
 norm_features_default: true
 test_datasets:
@@ -9,6 +9,7 @@ test_datasets:
     - cora
     - citeseer
     - pubmed
+    - Actor
 graph:
     graph_data_name_default: IMDB-BINARY
     imdb_features: 135

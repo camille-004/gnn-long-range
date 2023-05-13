@@ -2,7 +2,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 import torch_geometric.transforms as T
-from torch_geometric.datasets import Planetoid
+from torch_geometric.datasets import Planetoid, Actor
 from torch_geometric.loader import DataLoader
 
 from ..utils import load_config
@@ -67,11 +67,18 @@ class NodeDataModule(pl.LightningDataModule):
         -------
         None
         """
-        self.dataset = Planetoid(
-            root=f"{DATA_DIR}/{self.dataset_name}",
-            name=self.dataset_name,
-            transform=T.Compose(self.transform),
-        )
+        if self.dataset_name in ['cora', 'pubmed', 'citeseer']:
+            self.dataset = Planetoid(
+                root=f"{DATA_DIR}/{self.dataset_name}",
+                name=self.dataset_name,
+                transform=T.Compose(self.transform),
+            )
+        
+        if self.dataset_name == 'Actor':
+            self.dataset = Actor(
+                root=f"{DATA_DIR}/{self.dataset_name}",
+                transform=T.Compose(self.transform),
+            )
 
     @property
     def dataset_name(self) -> str:

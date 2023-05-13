@@ -66,6 +66,13 @@ parser.add_argument(
     help="Number of heads for multi-head attention. GATs only!",
 )
 parser.add_argument(
+    "-r",
+    "--distance",
+    default=5,
+    type=int,
+    help="根据邻接矩阵的r次方选择远的邻接矩阵",
+)
+parser.add_argument(
     "--plot_energy",
     action="store_true",
     help="Plot Dirichlet energy of each layer.",
@@ -83,7 +90,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    wandb.init(project='sognn_debug')
+    wandb.init(project='actor_')
 
     data, model = prepare_training(
         args.model,
@@ -92,6 +99,7 @@ if __name__ == "__main__":
         args.activation,
         dataset_name=args.dataset,
         n_heads=args.n_heads,
+        r=args.distance,
     )
 
     results = train_module(
@@ -101,6 +109,7 @@ if __name__ == "__main__":
         plot_energies=args.plot_energy,
         plot_rayleigh=args.plot_rayleigh,
         plot_influence=args.plot_influence,
+        r=args.distance,
     )
 
     sys.exit()

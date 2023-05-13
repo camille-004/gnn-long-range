@@ -55,7 +55,7 @@ def plot_dirichlet_energies(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    img_name = f"{_model.model_name}_{_model.n_hidden}h_{augmentation_thres}"
+    img_name = f"{_model.model_name}_{_model.n_hidden}h_{_model.r}_r"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
 
@@ -222,7 +222,7 @@ def plot_influences(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    img_name = f"{_model.model_name}_{_model.n_hidden}h"
+    img_name = f"{_model.model_name}_{_model.n_hidden}h_{_model.r}_r"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
 

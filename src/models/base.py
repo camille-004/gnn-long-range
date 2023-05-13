@@ -117,14 +117,24 @@ class BaseNodeClassifier(pl.LightningModule):
         if isinstance(x_out, tuple):
             x_out = x_out[0]
 
-        if mode == "train":
-            mask = batch.train_mask
-        elif mode == "val":
-            mask = batch.val_mask
-        elif mode == "test":
-            mask = batch.test_mask
+        if batch.train_mask.ndim == 1:
+            if mode == "train":
+                mask = batch.train_mask
+            elif mode == "val":
+                mask = batch.val_mask
+            elif mode == "test":
+                mask = batch.test_mask
+            else:
+                assert False, f"Unknown forward mode: {mode}"
         else:
-            assert False, f"Unknown forward mode: {mode}"
+            if mode == "train":
+                mask = batch.train_mask[:,0]
+            elif mode == "val":
+                mask = batch.val_mask[:,0]
+            elif mode == "test":
+                mask = batch.test_mask[:,0]
+            else:
+                assert False, f"Unknown forward mode: {mode}"
 
         loss = self.criterion(x_out[mask], batch.y[mask])
 
@@ -205,6 +215,9 @@ class BaseNodeClassifier(pl.LightningModule):
         return torch.optim.Adam(
             self.parameters(), lr=self.lr, weight_decay=self.weight_decay
         )
+        # return torch.optim.SGD(
+        #     self.parameters(), lr=self.lr, momentum=0.9, weight_decay=self.weight_decay, nesterov=True
+        # )
 
     def get_energies(self) -> List[float]:
         """

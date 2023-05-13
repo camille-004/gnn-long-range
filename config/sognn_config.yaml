@@ -1,11 +1,14 @@
-verbose: 1
-mode: min
-r: 3
+verbose: 0
+chunk_size: 64
+mode: random_sample
+r: 8
 mean: 
-  scale: 5
+  scale: 10
 threshold: 
-  value: 3
-random_sample:
+  value: 1
+random_sample: 
   scale: 1
 min: 
-  scale: 5
+  num: 5
+min_all:
+  scale: 1

@@ -1,6 +1,6 @@
 num_features_default: 3
 num_classes_default: 2
-hidden_channels_default: 16
-lr: 0.01
+hidden_channels_default: 256
+lr: 0.001
 weight_decay: 0.0005
 dropout: 0.5

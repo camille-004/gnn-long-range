@@ -1,7 +1,7 @@
 early_stopping_patience_default: 5
 early_stopping_min_delta_default: 0.001
-max_epochs_default: 2500
-save_plots_dir: "reports/figures"
+max_epochs_default: 100
+save_plots_dir: "figures"
 
 # Number of nodes whose influence distribution to plot after training GNN
 n_nodes_influence: 1

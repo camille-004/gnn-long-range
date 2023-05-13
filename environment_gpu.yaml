@@ -1,4 +1,4 @@
-name: dsc-gnn
+name: sognn
 channels:
   - conda-forge
   - defaults
