@@ -146,7 +146,7 @@ class SOGNNConv(MessagePassing):
                     for (data, value) in adj_raw:
                         num = int(len(value) / scale * config['scale'])
                         if num:
-                            probabilities = torch.max(value) - value
+                            probabilities = torch.max(value) - value + 1
                             index = torch.multinomial(probabilities, num)
                             adj_selected_raw.append(data[:, torch.sort(index).values])
                         else:
