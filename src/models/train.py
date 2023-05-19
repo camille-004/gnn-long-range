@@ -178,7 +178,7 @@ def train_module(
     trainer = pl.Trainer(
         logger=wandb_logger,
         log_every_n_steps=1,
-        check_val_every_n_epoch=5,
+        check_val_every_n_epoch=1,
         callbacks=callbacks,
         max_epochs=max_epochs,
         accelerator=device,

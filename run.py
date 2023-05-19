@@ -90,7 +90,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    wandb.init(project='actor_')
+    wandb.init(project='actor_256_0.5_es')
 
     data, model = prepare_training(
         args.model,
