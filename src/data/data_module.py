@@ -2,7 +2,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 import torch_geometric.transforms as T
-from torch_geometric.datasets import Planetoid, Actor
+from torch_geometric.datasets import Planetoid, Actor, WebKB
 from torch_geometric.loader import DataLoader
 
 from ..utils import load_config
@@ -49,10 +49,10 @@ class NodeDataModule(pl.LightningDataModule):
             else config["num_cpus_default"]
         )
 
-        self.transform = [AddRandomEdges(self.add_edges_thres)]
+        self.transform = [T.NormalizeFeatures()]
 
-        if self.norm_features:
-            self.transform.append(T.NormalizeFeatures())
+        # if self.norm_features:
+        #     self.transform.append(T.NormalizeFeatures())
 
         self.setup()
 
@@ -77,6 +77,13 @@ class NodeDataModule(pl.LightningDataModule):
         if self.dataset_name == 'Actor':
             self.dataset = Actor(
                 root=f"{DATA_DIR}/{self.dataset_name}",
+                transform=T.Compose(self.transform),
+            )
+
+        if self.dataset_name in ['texas', 'cornell', 'wisconsin']:
+            self.dataset = WebKB(
+                root=f"{DATA_DIR}/",
+                name=self.dataset_name,
                 transform=T.Compose(self.transform),
             )
 

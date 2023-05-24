@@ -52,7 +52,7 @@ class SOGNNConv(MessagePassing):
 
 
     def extra_repr(self) -> str:
-        return f'{self.in_channels}, {self.out_channels}, r={sognn_config["r"]}'
+        return f'{self.in_channels}, {self.out_channels}, r={self.r}'
 
 
     @classmethod
