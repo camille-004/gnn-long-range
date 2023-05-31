@@ -42,6 +42,7 @@ class BaseNodeClassifier(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.activation = activation
+        self.fa = kwargs.get('fa', False)
 
         assert n_hidden >= 0, "Number of hidden layers must be non-negative."
         self.n_hidden = n_hidden
@@ -81,16 +82,31 @@ class BaseNodeClassifier(pl.LightningModule):
 
         if self._model_name == "node_SOGNN":
             SOGNNConv.set_distant_adjacency_matrix(edge_index=edge_index)
+        if not self.fa:
+            for i in range(self.n_hidden + 1):
+                x = self.convs[i](x, edge_index)
+                energy = dirichlet_energy(x, _L)
+                rayleigh = rayleigh_quotient(x, _L)
+                x = self.activation(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
 
-        for i in range(self.n_hidden + 1):
-            x = self.convs[i](x, edge_index)
-            energy = dirichlet_energy(x, _L)
-            rayleigh = rayleigh_quotient(x, _L)
-            x = self.activation(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
+                self.energies.append(energy)
+                self.rayleigh.append(rayleigh)
+        else:
+            for i in range(self.n_hidden):
+                x = self.convs[i](x, edge_index)
+                energy = dirichlet_energy(x, _L)
+                rayleigh = rayleigh_quotient(x, _L)
+                x = self.activation(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
 
-            self.energies.append(energy)
-            self.rayleigh.append(rayleigh)
+                self.energies.append(energy)
+                self.rayleigh.append(rayleigh)
+
+            with torch.no_grad():
+                node = torch.max(edge_index)
+                #TODO:添加FA层
+            x = self.convs[-2](x, )
         
         x = self.convs[-1](x)
 

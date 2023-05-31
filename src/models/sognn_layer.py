@@ -1,8 +1,10 @@
 
 import torch
 import torch.nn.functional as F
+import networkx as nx
 from torch import Tensor
 from torch_geometric.nn.conv import MessagePassing
+from torch_geometric import utils
 from torch.nn import Linear, LayerNorm
 from torch_sparse import SparseTensor, spspmm
 from ..utils import load_config
@@ -180,9 +182,24 @@ class SOGNNConv(MessagePassing):
 
         if not cls.edge_index_distant:
             cls.edge_index_distant, mode = cls.get_distant_adjacency_matrix(edge_index=edge_index)
+            # graph = nx.Graph()
+            # graph.add_edges_from([
+            #     (s, t) for (s, t) in zip(edge_index[0, :], edge_index[1, :])
+            # ])
+            # print("Avg_dataset_dist: ", nx.average_shortest_path_length(graph))
+            # distances = [
+            #     nx.shortest_path_length(graph, source=s, target=t) for (s, t) in zip(
+            #     cls.edge_index_distant.storage._row, 
+            #     cls.edge_index_distant.storage._col
+            #     )
+            # ]
+
+
             print(f'\nCalculating Adjacency matrix distant with MODE <{mode}> ...')
             print("=" * 35 + "Adjacency matrix distant" + "=" * 35)
-            print(cls.edge_index_distant)
+            print("Matrix: ", cls.edge_index_distant)
+            # print("Distances: ", distances)
+            # print("Avg_Dist: ", torch.mean(torch.Tensor(distances)))
             print("=" * 35 + "Adjacency matrix distant" + "=" * 35)
 
         if sognn_config['verbose']:

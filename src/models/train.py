@@ -86,7 +86,7 @@ def prepare_training(
 
 
     _data_module = NodeDataModule(
-        dataset_name=dataset_name, add_edges_thres=add_edges_thres
+        dataset_name=dataset_name, add_edges_thres=add_edges_thres, **kwargs
     )
 
     model_instance = MODEL_MAP[_model](
@@ -149,9 +149,11 @@ def train_module(
     """
     _num_features = _data_module.num_features
     _num_classes = _data_module.num_classes
+    _is_undirected = _data_module.is_undirected
     print("==================\nDATASET STATISTICS\n==================\n")
     print(f"Number of features: {_num_features}")
-    print(f"Number of classes: {_num_classes}\n")
+    print(f"Number of classes: {_num_classes}")
+    print(f"Graph is undirected: {_is_undirected}\n")
 
     print("========\nTRAINING\n========\n")
     print(_model)
@@ -225,6 +227,9 @@ def train_module(
             type(_model.activation).__name__,
             r,
         ]
+        
+        if _model.model_name != 'node_SOGNN':
+            row[-1] = 'none'
 
         if hasattr(_model, "num_heads"):
             row[-1] = _model.num_heads

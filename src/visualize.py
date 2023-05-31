@@ -55,7 +55,7 @@ def plot_dirichlet_energies(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    img_name = f"{_model.model_name}_{_model.n_hidden}h_{_model.r}_r"
+    img_name = f"{_model.model_name}_{_model.n_hidden}h"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
 
@@ -107,6 +107,8 @@ def plot_rayleigh_quotients(
     img_name = f"{_model.model_name}_{_model.n_hidden}h_{augmentation_thres}"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
+    if hasattr(_model, "r"):
+        img_name += f"_{_model.r}_r"
 
     plt.savefig(
         Path(save_dir, f"{img_name}.png"),
@@ -178,11 +180,10 @@ def plot_influences(
             ax[j].set_title(f"Jacobian at r = {r}, Node = {val}", fontsize=12)
 
         plt.suptitle(
-            f"{_model.model_name}-{_model.n_hidden} Hidden - Influences \n"
-            f"add_edges_thres = {augmentation_thres}",
+            f"{_model.model_name}-{_model.n_hidden+1} Hidden - Influences",
             fontsize=10,
         )
-        plt.title(f"add_edges_thres = {augmentation_thres}", fontsize=10)
+        # plt.title(f"add_edges_thres = {augmentation_thres}", fontsize=10)
     else:
         influences = []
         influences_ = []
@@ -214,6 +215,7 @@ def plot_influences(
             f"Node = {i}",
             fontsize=10,
         )
+
     print(f"Inlfuences: {influences_}")
     save_dir = Path(
         training_config["save_plots_dir"],
@@ -222,9 +224,12 @@ def plot_influences(
     )
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    img_name = f"{_model.model_name}_{_model.n_hidden}h_{_model.r}_r"
+    img_name = f"{_model.model_name}_{_model.n_hidden}h"
     if hasattr(_model, "num_heads"):
         img_name += f"_{_model.num_heads}_head"
+    if hasattr(_model, "r"):
+        img_name += f"_{_model.r}_r"
+    img_name += f"_{n_nodes_influence}_nodes"
 
     plt.savefig(
         Path(save_dir, f"{img_name}.png"),

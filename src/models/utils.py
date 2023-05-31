@@ -161,3 +161,35 @@ def rayleigh_quotient(x: Tensor, laplacian: Tensor) -> np.ndarray:
         _R.append(energy / norm)
 
     return np.nanmean(_R)
+
+
+def fa_layer(model, x: Tensor, edge_index: Tensor) -> Tensor:
+    """
+    A fully connected layer.
+
+    Parameters
+    ----------
+    model : MassagePassing
+        Model to use
+    x : Tensor
+        Node features.
+    edge_index : Tensor
+        Graph adjacency matrix
+
+    Returns
+    -------
+    Tensor
+        Node features updated by a fully connected layer.
+    """
+    with torch.no_grad():
+        nodes = torch.max(edge_index).item() + 1
+
+    row, col = [], []
+    for i in range(nodes):
+        for j in range(nodes):
+            row.append(i)
+            col.append(j)
+
+    edge_index_fa = torch.tensor([row, col], dtype=torch.int64)
+    
+    return model(x, edge_index_fa)

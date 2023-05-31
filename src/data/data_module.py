@@ -38,6 +38,11 @@ class NodeDataModule(pl.LightningDataModule):
             if "norm_features" in kwargs.keys()
             else config["norm_features_default"]
         )
+        self.to_undirected = (
+            kwargs["tud"]
+            if "tud" in kwargs.keys()
+            else config["tud_default"]
+        )
         self.batch_size: int = (
             kwargs["batch_size"]
             if "batch_size" in kwargs.keys()
@@ -50,9 +55,12 @@ class NodeDataModule(pl.LightningDataModule):
         )
 
         self.transform = [T.NormalizeFeatures()]
+        if self.to_undirected:
+            self.transform.append(T.ToUndirected())
+            print("Set garph to undirected\n")
+        if self.norm_features:
+            self.transform.append(T.NormalizeFeatures())
 
-        # if self.norm_features:
-        #     self.transform.append(T.NormalizeFeatures())
 
         self.setup()
 
@@ -79,6 +87,7 @@ class NodeDataModule(pl.LightningDataModule):
                 root=f"{DATA_DIR}/{self.dataset_name}",
                 transform=T.Compose(self.transform),
             )
+            print("After loading data, the graph is undirected: ", self.dataset[0].is_undirected())
 
         if self.dataset_name in ['texas', 'cornell', 'wisconsin']:
             self.dataset = WebKB(
@@ -119,6 +128,13 @@ class NodeDataModule(pl.LightningDataModule):
             The number of classes.
         """
         return self.dataset.num_classes
+
+    @property
+    def is_undirected(self) -> bool:
+        """
+        Return if the graph is undirected.
+        """
+        return self.dataset[0].is_undirected()
 
     def train_dataloader(self) -> DataLoader:
         """
