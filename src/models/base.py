@@ -8,7 +8,7 @@ from torch import Tensor
 from torch_geometric.data import Data
 
 from .sognn_layer import SOGNNConv
-from .utils import dirichlet_energy, get_graph_laplacian, rayleigh_quotient
+from .utils import dirichlet_energy, get_graph_laplacian, rayleigh_quotient, fa_layer
 
 Mode = Literal["train", "val", "test"]
 
@@ -103,10 +103,14 @@ class BaseNodeClassifier(pl.LightningModule):
                 self.energies.append(energy)
                 self.rayleigh.append(rayleigh)
 
-            with torch.no_grad():
-                node = torch.max(edge_index)
-                #TODO:添加FA层
-            x = self.convs[-2](x, )
+            x = fa_layer(self.convs[-2], x, edge_index)
+            energy = dirichlet_energy(x, _L)
+            rayleigh = rayleigh_quotient(x, _L)
+            x = self.activation(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+            self.energies.append(energy)
+            self.rayleigh.append(rayleigh)
         
         x = self.convs[-1](x)
 
