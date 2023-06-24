@@ -31,7 +31,8 @@ class NodeLevelSOGNN(BaseNodeClassifier):
             dropout=dropout,
             lr=lr,
             weight_decay=weight_decay,
-            activation=activation
+            activation=activation,
+            **kwargs
         )
         self.r = r
         self._model_name = "node_SOGNN"
@@ -42,12 +43,12 @@ class NodeLevelSOGNN(BaseNodeClassifier):
                 "Using ReLU activation function. Non-differentiable"
                 "activation may yield inaccurate influences."
             )
-
+        self.ordered = kwargs.get('ordered', True)
         self.convs = nn.ModuleList()
         SOGNNConv.r = self.r
-        self.convs.append(SOGNNConv(num_features, hidden_dim))
+        self.convs.append(SOGNNConv(num_features, hidden_dim, use_gate=self.ordered))
 
         for _ in range(n_hidden):
-            self.convs.append(SOGNNConv(hidden_dim, hidden_dim))
+            self.convs.append(SOGNNConv(hidden_dim, hidden_dim, use_gate=self.ordered))
 
         self.convs.append(Linear(hidden_dim, num_classes))

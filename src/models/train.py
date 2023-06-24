@@ -209,32 +209,31 @@ def train_module(
     val_results[0].update(val_results[1])
     model_results = val_results[0]
 
-    results_path = Path(
-        global_config["logs_dir"], global_config["results_name"]
-    )
+    # results_path = Path(
+    #     global_config["logs_dir"], global_config["results_name"]
+    # )
 
-    with open(results_path, "a") as f:
-        writer = csv.writer(f)
-        row = [
-            _model.model_name,
-            _data_module.dataset_name,
-            _model.n_hidden,
-            # _data_module.add_edges_thres,
-            np.round(model_results["val_loss"], 4),
-            np.round(model_results["val_accuracy"], 4),
-            np.round(model_results["test_loss"], 4),
-            np.round(model_results["test_accuracy"], 4),
-            type(_model.activation).__name__,
-            r,
-        ]
+    # with open(results_path, "a") as f:
+    #     writer = csv.writer(f)
+    #     row = [
+    #         _model.model_name,
+    #         _data_module.dataset_name,
+    #         _model.n_hidden,
+    #         # _data_module.add_edges_thres,
+    #         np.round(model_results["val_loss"], 4),
+    #         np.round(model_results["val_accuracy"], 4),
+    #         np.round(model_results["test_loss"], 4),
+    #         np.round(model_results["test_accuracy"], 4),
+    #         type(_model.activation).__name__,
+    #         r,
+    #     ]
         
-        if _model.model_name != 'node_SOGNN':
-            row[-1] = 'none'
+    #     if _model.model_name != 'node_SOGNN':
+    #         row[-1] = 'none'
 
-        if hasattr(_model, "num_heads"):
-            row[-1] = _model.num_heads
+    #     if hasattr(_model, "num_heads"):
+    #         row[-1] = _model.num_heads
 
-        writer.writerow(row)
-
+    #     writer.writerow(row)
     wandb.finish()
     return {_model.model_name: model_results}

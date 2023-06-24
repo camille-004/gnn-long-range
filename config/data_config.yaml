@@ -2,6 +2,7 @@ data_dir: "data"
 batch_size_default: 64
 num_cpus_default: 16
 norm_features_default: true
+tud_default: false
 test_datasets:
     - IMDB-BINARY
     - PROTEINS
@@ -10,6 +11,11 @@ test_datasets:
     - citeseer
     - pubmed
     - Actor
+    - cornell
+    - texas
+    - wisconsin
+    - chameleon
+    - squirrel
 graph:
     graph_data_name_default: IMDB-BINARY
     imdb_features: 135

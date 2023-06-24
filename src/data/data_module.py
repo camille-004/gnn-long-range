@@ -2,7 +2,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 import torch_geometric.transforms as T
-from torch_geometric.datasets import Planetoid, Actor, WebKB
+from torch_geometric.datasets import Planetoid, Actor, WebKB, WikipediaNetwork
 from torch_geometric.loader import DataLoader
 
 from ..utils import load_config
@@ -87,7 +87,7 @@ class NodeDataModule(pl.LightningDataModule):
                 root=f"{DATA_DIR}/{self.dataset_name}",
                 transform=T.Compose(self.transform),
             )
-            print("After loading data, the graph is undirected: ", self.dataset[0].is_undirected())
+    
 
         if self.dataset_name in ['texas', 'cornell', 'wisconsin']:
             self.dataset = WebKB(
@@ -95,7 +95,16 @@ class NodeDataModule(pl.LightningDataModule):
                 name=self.dataset_name,
                 transform=T.Compose(self.transform),
             )
+        
+        if self.dataset_name in ['chameleon', 'squirrel']:
+            self.dataset = WikipediaNetwork(
+                root=f"{DATA_DIR}/",
+                geom_gcn_preprocess=True,
+                name=self.dataset_name,
+                transform=T.Compose(self.transform)
+            )
 
+        print("After loading data, the graph is undirected: ", self.dataset[0].is_undirected())
     @property
     def dataset_name(self) -> str:
         """

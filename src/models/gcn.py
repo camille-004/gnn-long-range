@@ -30,7 +30,8 @@ class NodeLevelGCN(BaseNodeClassifier):
             dropout=dropout,
             lr=lr,
             weight_decay=weight_decay,
-            activation=activation
+            activation=activation,
+            **kwargs
         )
 
         self._model_name = "node_GCN"

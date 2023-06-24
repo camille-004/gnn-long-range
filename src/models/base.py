@@ -43,10 +43,13 @@ class BaseNodeClassifier(pl.LightningModule):
         self.weight_decay = weight_decay
         self.activation = activation
         self.fa = kwargs.get('fa', False)
-
+        if self.fa:
+            print('\nThe last layer is modified to a fully connected layer.\n')
         assert n_hidden >= 0, "Number of hidden layers must be non-negative."
         self.n_hidden = n_hidden
-
+        self.alpha = kwargs.get('alpha', 0.1)
+        self.use_norm_loss = kwargs.get('unl', False)
+        self.split = kwargs.get('split', 0)
         self.convs = nn.ModuleList()
 
     @property
@@ -60,7 +63,7 @@ class BaseNodeClassifier(pl.LightningModule):
         """
         return self._model_name
 
-    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Any, edge_index: Any) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Forward pass.
 
@@ -80,6 +83,8 @@ class BaseNodeClassifier(pl.LightningModule):
         self.energies = []
         self.rayleigh = []
 
+        sognn_loss:float = 0
+
         if self._model_name == "node_SOGNN":
             SOGNNConv.set_distant_adjacency_matrix(edge_index=edge_index)
         if not self.fa:
@@ -89,6 +94,8 @@ class BaseNodeClassifier(pl.LightningModule):
                 rayleigh = rayleigh_quotient(x, _L)
                 x = self.activation(x)
                 x = F.dropout(x, p=self.dropout, training=self.training)
+                if self._model_name == "node_SOGNN" and self.use_norm_loss:
+                    sognn_loss += torch.sum(torch.mul(x, x.flip(dims=[1]))) * i / self.n_hidden / x.shape[0]
 
                 self.energies.append(energy)
                 self.rayleigh.append(rayleigh)
@@ -112,9 +119,10 @@ class BaseNodeClassifier(pl.LightningModule):
             self.energies.append(energy)
             self.rayleigh.append(rayleigh)
         
+        # 过全连接用于分类
         x = self.convs[-1](x)
-
-        return F.log_softmax(x, dim=1), x
+        
+        return F.log_softmax(x, dim=1), x, sognn_loss
 
     def step_util(self, batch: Data, mode: Mode) -> Tuple[Tensor, Any]:
         """
@@ -135,6 +143,7 @@ class BaseNodeClassifier(pl.LightningModule):
         x_out = self.forward(x, edge_index)
 
         if isinstance(x_out, tuple):
+            sognn_loss = x_out[-1]
             x_out = x_out[0]
 
         if batch.train_mask.ndim == 1:
@@ -147,12 +156,14 @@ class BaseNodeClassifier(pl.LightningModule):
             else:
                 assert False, f"Unknown forward mode: {mode}"
         else:
+            split = self.split
+            print(f'Using Data with split index {split}.')
             if mode == "train":
-                mask = batch.train_mask[:,0]
+                mask = batch.train_mask[:, split]
             elif mode == "val":
-                mask = batch.val_mask[:,0]
+                mask = batch.val_mask[:, split]
             elif mode == "test":
-                mask = batch.test_mask[:,0]
+                mask = batch.test_mask[:, split]
             else:
                 assert False, f"Unknown forward mode: {mode}"
 
@@ -162,7 +173,7 @@ class BaseNodeClassifier(pl.LightningModule):
         pred = x_out[mask].argmax(-1)
         accuracy = (pred == batch.y[mask]).sum() / pred.shape[0]
 
-        return loss, accuracy
+        return loss, accuracy, sognn_loss
 
     def training_step(self, batch: Data, batch_index: int) -> Tensor:
         """
@@ -177,8 +188,9 @@ class BaseNodeClassifier(pl.LightningModule):
         -------
         Tensor
         """
-        loss, accuracy = self.step_util(batch, "train")
-
+        loss, accuracy, sognn_loss = self.step_util(batch, "train")
+        if self._model_name == "node_SOGNN" and self.use_norm_loss:
+            loss += self.alpha * sognn_loss
         self.log("train_loss", loss)
         self.log("train_accuracy", accuracy)
 
@@ -197,7 +209,7 @@ class BaseNodeClassifier(pl.LightningModule):
         -------
         Tensor
         """
-        loss, accuracy = self.step_util(batch, "val")
+        loss, accuracy, _ = self.step_util(batch, "val")
 
         self.log("val_loss", loss)
         self.log("val_accuracy", accuracy)
@@ -217,7 +229,7 @@ class BaseNodeClassifier(pl.LightningModule):
         -------
         Tensor
         """
-        loss, accuracy = self.step_util(batch, "test")
+        loss, accuracy, _ = self.step_util(batch, "test")
 
         self.log("test_loss", loss)
         self.log("test_accuracy", accuracy)

@@ -190,6 +190,6 @@ def fa_layer(model, x: Tensor, edge_index: Tensor) -> Tensor:
             row.append(i)
             col.append(j)
 
-    edge_index_fa = torch.tensor([row, col], dtype=torch.int64)
-    
+    edge_index_fa = torch.tensor([row, col], dtype=torch.int64, device=x.device)
+
     return model(x, edge_index_fa)
