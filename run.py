@@ -3,7 +3,7 @@ import sys
 
 import wandb
 from src.models.train import prepare_training, train_module
-from src.utils import load_config
+from src.utils import load_config, get_group_name
 
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -87,29 +87,106 @@ parser.add_argument(
     action="store_true",
     help="Plot up to r-th-order neighborhood influence on a random node.",
 )
-
+parser.add_argument(
+    "-pn",
+    "--project_name",
+    default='sognn_no_name',
+    type=str,
+    help='name of the project on wandb website',
+)
+parser.add_argument(
+    "--fa",
+    action="store_true",
+    help="Add a fully connected layer."
+)
+parser.add_argument(
+    "--tud",
+    action='store_true',
+    help='Make the graph to undirected.'
+)
+parser.add_argument(
+    "--unl",
+    action='store_true',
+    help='Use sognn loss.'
+)
+parser.add_argument(
+    "-o",
+    "--ordered",
+    default=True,
+    type=bool,
+    help="Either to use the ordered scheme."
+)
 if __name__ == "__main__":
     args = parser.parse_args()
-    wandb.init(project='Wisconsin')
 
-    data, model = prepare_training(
-        args.model,
-        args.n_hidden_layers,
-        args.add_edges_thres,
-        args.activation,
-        dataset_name=args.dataset,
-        n_heads=args.n_heads,
-        r=args.distance,
-    )
+    dataset_name=args.dataset
 
-    results = train_module(
-        data,
-        model,
-        max_epochs=args.max_epochs,
-        plot_energies=args.plot_energy,
-        plot_rayleigh=args.plot_rayleigh,
-        plot_influence=args.plot_influence,
-        r=args.distance,
-    )
+    if dataset_name in ['cora', 'pubmed', 'citeseer']:
+        wandb.init(project=args.project_name)
+        data, model = prepare_training(
+            args.model,
+            args.n_hidden_layers,
+            args.add_edges_thres,
+            args.activation,
+            dataset_name=dataset_name,
+            n_heads=args.n_heads,
+            r=args.distance,
+            fa=args.fa,
+            tud=args.tud,
+            unl=args.unl,
+            ordered=args.ordered,
+        )
+
+        results = train_module(
+            data,
+            model,
+            max_epochs=args.max_epochs,
+            plot_energies=args.plot_energy,
+            plot_rayleigh=args.plot_rayleigh,
+            plot_influence=args.plot_influence,
+            r=args.distance,
+        )
+    
+    if dataset_name in ['Actor', 'texas', 'cornell', 'wisconsin', 'chameleon', 'squirrel']:
+        group_name = get_group_name(args)
+        acc = 0
+        for split in range(10):
+            wandb.init(
+                project=args.project_name, 
+                group=group_name, 
+                config=args, 
+                name=f'{dataset_name}_split_{split}_{group_name}'
+                )
+            data, model = prepare_training(
+                args.model,
+                args.n_hidden_layers,
+                args.add_edges_thres,
+                args.activation,
+                dataset_name=dataset_name,
+                n_heads=args.n_heads,
+                r=args.distance,
+                fa=args.fa,
+                tud=args.tud,
+                unl=args.unl,
+                split=split
+            )
+
+            results = train_module(
+                data,
+                model,
+                max_epochs=args.max_epochs,
+                plot_energies=args.plot_energy,
+                plot_rayleigh=args.plot_rayleigh,
+                plot_influence=args.plot_influence,
+                r=args.distance,
+            )
+            acc_ = results['node_SOGNN']['test_accuracy']
+            acc += 0.1 * acc_
+        print('=' * 30)
+        print(f'Average accuracy on 10 splits: {acc:.3f}.')
+        print('=' * 30)
+        wandb.init(project=args.project_name, group=group_name, config=args, name=group_name+'_Acc')
+        wandb.log({'Average accuracy': acc})
+        wandb.finish()
 
     sys.exit()
