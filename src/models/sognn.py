@@ -43,12 +43,15 @@ class NodeLevelSOGNN(BaseNodeClassifier):
                 "Using ReLU activation function. Non-differentiable"
                 "activation may yield inaccurate influences."
             )
+        print(self.lr, self.weight_decay, self.dropout, self.device)
         self.ordered = kwargs.get('ordered', True)
+        SOGNNConv.ordered = self.ordered
+        print(f"Ordered: {self.ordered}")
         self.convs = nn.ModuleList()
         SOGNNConv.r = self.r
-        self.convs.append(SOGNNConv(num_features, hidden_dim, use_gate=self.ordered))
+        self.convs.append(SOGNNConv(num_features, hidden_dim, first=True))
 
         for _ in range(n_hidden):
-            self.convs.append(SOGNNConv(hidden_dim, hidden_dim, use_gate=self.ordered))
+            self.convs.append(SOGNNConv(hidden_dim, hidden_dim))
 
         self.convs.append(Linear(hidden_dim, num_classes))

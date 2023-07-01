@@ -43,5 +43,11 @@ def get_group_name(args: Any) -> str:
     str
         Group name.
     """
-
-    return f'{args.n_hidden_layers}_layers_{args.distance}_r_{args.activation}'
+    group_name = f'{args.n_hidden_layers}_layers_{args.distance}_r'
+    if hasattr(args, 'learning_rate'):
+        group_name += f"_{args.learning_rate}_lr"
+    if hasattr(args, 'weight_decay'):
+        group_name += f"_{args.weight_decay}_wd"
+    if hasattr(args, 'dropout'):
+        group_name += f"_{args.dropout}_dr"
+    return group_name + f'_{args.activation}'

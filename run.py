@@ -5,8 +5,8 @@ import wandb
 from src.models.train import prepare_training, train_module
 from src.utils import load_config, get_group_name
 
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 data_config = load_config("data_config.yaml")
 training_config = load_config("training_config.yaml")
@@ -41,6 +41,7 @@ parser.add_argument(
     "-a",
     "--activation",
     choices=["elu", "relu", "tanh"],
+    default='relu',
     type=str,
     help="Activation function used by neural network.",
 )
@@ -64,6 +65,27 @@ parser.add_argument(
     default=1,
     type=int,
     help="Number of heads for multi-head attention. GATs only!",
+)
+parser.add_argument(
+    '-lr',
+    "--learning_rate",
+    default=0,
+    type=float,
+    help="learning rate"
+)
+parser.add_argument(
+    '-wd',
+    "--weight_decay",
+    default=0,
+    type=float,
+    help="weight decay"
+)
+parser.add_argument(
+    '-dr',
+    '--dropout',
+    default=0,
+    type=float,
+    help="dropout rate"
 )
 parser.add_argument(
     "-r",
@@ -110,12 +132,11 @@ parser.add_argument(
     help='Use sognn loss.'
 )
 parser.add_argument(
-    "-o",
     "--ordered",
-    default=True,
-    type=bool,
+    action="store_true",
     help="Either to use the ordered scheme."
 )
+
 if __name__ == "__main__":
     args = parser.parse_args()
 
@@ -135,6 +156,9 @@ if __name__ == "__main__":
             tud=args.tud,
             unl=args.unl,
             ordered=args.ordered,
+            dropout=args.dropout,
+            weight_decay=args.weight_decay,
+            lr=args.learning_rate
         )
 
         results = train_module(
@@ -148,7 +172,8 @@ if __name__ == "__main__":
         )
     
     if dataset_name in ['Actor', 'texas', 'cornell', 'wisconsin', 'chameleon', 'squirrel']:
-        group_name = get_group_name(args)
+        group_name: str = get_group_name(args)
+        print("group_name: " + group_name)
         acc = 0
         for split in range(10):
             wandb.init(
@@ -168,6 +193,10 @@ if __name__ == "__main__":
                 fa=args.fa,
                 tud=args.tud,
                 unl=args.unl,
+                ordered=args.ordered,
+                dropout=args.dropout,
+                weight_decay=args.weight_decay,
+                lr=args.learning_rate,
                 split=split
             )
 

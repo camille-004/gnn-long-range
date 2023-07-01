@@ -16,29 +16,36 @@ class SOGNNConv(MessagePassing):
     r: int = None
     mode: str = None
     edge_index_distant: SparseTensor = None
+
+    ordered: bool = True
     
     def __init__(
             self, 
             in_channels:int, 
             out_channels:int,  
             chunk_size:int=sognn_config['chunk_size'],
-            use_gate:bool=True
+            first:bool=False
     ):
         super(SOGNNConv, self).__init__('mean')  # 'add', 'sum', 'mean', 'min', 'max'
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.lin = Linear(in_channels, out_channels)
         self.norm = LayerNorm(out_channels)
-        self.use_gate = use_gate
+        self.first = first
 
         # 如果chunk_size不能整除out_channels，则让chunk_size = out_channels
         
-        if self.use_gate:
-            # 用chunk_size来减少参数，一个门控制chunk_size个神经元
-            self.chunk_size = chunk_size
-            if not out_channels % chunk_size == 0:
-                self.chunk_size = out_channels
-            self.gat = Linear(3*out_channels, self.chunk_size)
+        if self.ordered:
+            if self.first:
+                # 将第一层表示的前半部分与后半部分分别更新
+                self.gat_l = Linear(2*out_channels, int(out_channels/2))
+                self.gat_r = Linear(out_channels, int(out_channels/2))
+            else:
+                # 用chunk_size来减少参数，一个门控制chunk_size个神经元
+                self.chunk_size = chunk_size
+                if not out_channels % chunk_size == 0:
+                    self.chunk_size = out_channels
+                self.gat = Linear(3*out_channels, self.chunk_size)
         else:
             self.combine = Linear(3*out_channels, out_channels)
 
@@ -49,13 +56,22 @@ class SOGNNConv(MessagePassing):
         edge_index_close = edge_index
         m_n = self.propagate(edge_index_close, x=x)
         m_d = self.propagate(SOGNNConv.edge_index_distant, x=x)
-        if self.use_gate:
-            # Combine with gate
-            gat_raw = F.softmax(self.gat(torch.cat((x, m_n, m_d), dim=1)), dim=-1)
-            gat = torch.cumsum(gat_raw, dim=-1).repeat_interleave(repeats=int(self.out_channels/self.chunk_size), dim=1)
-            out = (x + m_n) * (1 - gat) + (x + m_n + m_d.flip(dims=[1])) * gat
+        if self.ordered:
+            if self.first:
+                print("Passing the first layer...")
+                # 手动执行严格二分化ordered
+                out_l = self.gat_l(torch.cat((x, m_n), dim=1))
+                out_r = self.gat_r(m_d)
+                out = torch.cat((out_l, out_r), dim=1)
+            else:
+                print("Passing other layer...")
+                # Combine with gate
+                gat_raw = F.softmax(self.gat(torch.cat((x, m_n, m_d), dim=1)), dim=-1)
+                gat = torch.cumsum(gat_raw, dim=-1).repeat_interleave(repeats=int(self.out_channels/self.chunk_size), dim=1)
+                out = (x + m_n) * (1 - gat) + (x + m_n + m_d.flip(dims=[1])) * gat
         else:
             # Combine without gate
+            print('Not ordered.')
             out = self.combine(torch.cat((x, m_n, m_d), dim=1))
 
         out = self.norm(out)
@@ -75,18 +91,6 @@ class SOGNNConv(MessagePassing):
         assert mode in mode_list, "unvalid mode selected, pleace choose one mode in {}.".format(mode_list)
 
         config: dict = config[mode]
-        # if mode == 'mean':
-        #     scale:int = config['scale']
-        #     assert scale, "scale should be set"
-        # if mode == 'threshold':
-        #     threshold:int = config['value']
-        #     assert threshold, "threshold value should be set"
-        # if mode in ['random_sample', 'min']:
-        #     scale: int = config['scale']
-        #     assert scale, "scale should be set"
-        # if mode == 'min_all':
-        #     num: int = config['num']
-        #     assert num, "num should be set"
         return mode, r, config
 
 

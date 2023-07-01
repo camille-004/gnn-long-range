@@ -84,7 +84,7 @@ def prepare_training(
     if activation is not None:
         activation = ACTIVATION_MAP[activation]
 
-
+    print(kwargs)
     _data_module = NodeDataModule(
         dataset_name=dataset_name, add_edges_thres=add_edges_thres, **kwargs
     )
@@ -94,9 +94,9 @@ def prepare_training(
         _data_module.num_classes,
         model_config["hidden_channels_default"],
         n_hidden,
-        model_config["dropout"],
-        model_config["lr"],
-        model_config["weight_decay"],
+        # kwargs.get("dropout") or model_config["dropout"],
+        # kwargs.get("lr") or model_config["lr"],
+        # kwargs.get("weight_decay") or model_config["weight_decay"],
         activation=activation,
         **kwargs,
     )
@@ -165,8 +165,8 @@ def train_module(
 
     if use_early_stopping:
         early_stopping = EarlyStopping(
-            monitor="val_loss",
-            mode="min",
+            monitor="val_accuracy",
+            mode="max",
             patience=early_stopping_patience,
             min_delta=early_stopping_min_delta,
             verbose=True,
